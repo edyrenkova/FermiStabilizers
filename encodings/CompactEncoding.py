@@ -1,6 +1,6 @@
 from FermionSquare import FermionSquare
 import panqec
-from FermionHamiltonian import FermionHamiltonian
+from hamiltonians.FermionHamiltonian import FermionHamiltonian
 import cirq
 import copy
 import stim
@@ -9,7 +9,7 @@ import numpy as np
 from AbstractEncoding import AbstractEncoding
 from openfermion.ops import FermionOperator, QubitOperator
 import openfermion as of
-from QubitHamiltonian import QubitHamiltonian
+from hamiltonians.QubitHamiltonian import QubitHamiltonian
 
 
 class CompactEncoding(AbstractEncoding):
