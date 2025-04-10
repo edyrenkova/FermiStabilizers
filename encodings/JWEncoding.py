@@ -16,7 +16,7 @@ class JWEncoding(AbstractEncoding):
     """
 
     ###INITIALIZATION###
-    def __init__(self, fermion_hamiltonian:FermionHamiltonian = None):
+    def __init__(self, fermion_hamiltonian:FermionHamiltonian):
         """
         Initialize the JWEncoding object.
 
