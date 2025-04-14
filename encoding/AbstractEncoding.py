@@ -77,7 +77,7 @@ class AbstractEncoding(ABC):
         pass
 
     @abstractmethod
-    def get_full_encoded_ham_length(self):
+    def _get_full_encoded_ham_length(self):
         """
         Get the length of the full encoded Hamiltonian (number of terms).
 

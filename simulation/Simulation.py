@@ -1,15 +1,14 @@
 import os
 import git
 import pandas as pd
-from CompactEncoding import CompactEncoding
-from FermionHamiltonian import FermionHamiltonian
-from TernaryEncoding import TernaryEncoding
-from JWEncoding import JWEncoding
+from encoding.CompactEncoding import CompactEncoding
+from hamiltonians.FermionHamiltonian import FermionHamiltonian
+from encoding.TernaryEncoding import TernaryEncoding
+from encoding.JWEncoding import JWEncoding
 import numpy as np
 import stim
 import time
 from scipy.stats import bootstrap
-import concurrent.futures
 import copy
 
 class Simulation:
@@ -26,7 +25,6 @@ class Simulation:
 
         self.lattice_size = int(data_frame['lattice_size'])#.iloc[0])
         self.fermion_hamiltonian_descr = data_frame['fermion_hamiltonian_descr']#.iloc[0]
-        #self.fermion_hamiltonian_seed = int(data_frame['fermion_hamiltonian_seed'])#.iloc[0])
         self.boundary_conditions = data_frame['boundary_conditions']#.iloc[0]
         self.rand_seed = int(data_frame['rand_seed'])#.iloc[0]
 
@@ -57,7 +55,7 @@ class Simulation:
 
         self.filename_prefix = f"{self.encoding}{self.lattice_size}{int(self.logical_operators_depth*100)}{int(self.efficient_trotter_steps*100)}{int(self.virtual_error_detection_rate*100)}{int(self.stabilizer_reconstruction)}{int(self.flags_in_synd_extraction)}{int(self.global_parity_postselection)}{int(self.non_destructive_stabilizer_measurement_end)}{self.type_of_logical_observables}{str(self.error_model).replace(', ', '').replace('(', 'm').replace(')','m')}{int(self.p2*10000)}"
         self.output_data_folder = os.path.join(output_folder, self.filename_prefix)
-        
+    
     def run(self):
         """
         Runs the simulation.
@@ -87,7 +85,7 @@ class Simulation:
             bootstrapped_any_logical_error_rate, raw_any_logical_error_rate, bootstrapped_local_logical_error_rates, raw_local_logical_error_rates, bootstrapped_detection_rates, raw_any_detection_rate = self._bootstrap_no_vqed(any_detection_arr, 
                                                                                                     postsel_any_observable_arr, obs_data_for_triv_syndrome)
         else:
-            obs_est_samples, v_s, any_detection_arr = self._sample_stim_circuit_vqed_parallel(self.q_hamiltonian)
+            obs_est_samples, v_s, any_detection_arr = self._sample_stim_circuit_vqed(self.q_hamiltonian)
             bootstrapped_any_logical_error_rate, raw_any_logical_error_rate, bootstrapped_local_logical_error_rates, raw_local_logical_error_rates, bootstrapped_detection_rates, raw_any_detection_rate = self._bootstrap_vqed(obs_est_samples, v_s, any_detection_arr)
             
 
@@ -98,7 +96,6 @@ class Simulation:
         repo = git.Repo(search_parent_directories=True)
 
         # Save results to numpy files
-        #self.output_data_folder = os.path.join(self.output_folder, self.filename_prefix)
         os.makedirs(self.output_data_folder, exist_ok=True)
 
         # Save raw and bootstrapped logical error rates
@@ -157,9 +154,7 @@ class Simulation:
             'circuit_detector_count': [detector_number],
 
             'Z_observable_count': [self.Z_obs_count], 
-            'efficient_observable_count': [self.efficient_obs_count],  
-            'tensor_basis_observable_count': [self.tensor_basis_obs_count],  
-            'num_tensor_bases': [self.num_tensor_bases], 
+            'efficient_observable_count': [self.efficient_obs_count], 
             'time_to_initialize_fermion_hamiltonian': [self.time_to_initialize_fermion_hamiltonian], 
             'time_to_make_stim_circuit': [self.time_to_make_stim_circuit],
             'time_to_sample_stim_circuit': [self.time_to_sample_stim_circuit],  
@@ -209,7 +204,7 @@ class Simulation:
                     'num_qubits', 'num_ticks',
                     'fermion_hamiltonian_length', 'full_encoded_ham_length',
                     'circuit_obs_count', 'circuit_detector_count',
-                    'Z_observable_count', 'efficient_observable_count', 'tensor_basis_observable_count', 'num_tensor_bases',
+                    'Z_observable_count', 'efficient_observable_count',
 
                     'time_to_initialize_fermion_hamiltonian', 'time_to_make_stim_circuit', 'time_to_sample_stim_circuit',
 
@@ -259,10 +254,10 @@ class Simulation:
         else:
             raise ValueError(f"Encoding {self.encoding} not supported.")
         self.q_hamiltonian = q_hamiltonian
-        self.Z_obs_count, self.efficient_obs_count, self.tensor_basis_obs_count =\
-             q_hamiltonian.get_relevant_observable_counts()
+        self.Z_obs_count, self.efficient_obs_count =\
+             q_hamiltonian._get_relevant_observable_counts()
         
-        self.full_encoded_ham_length = q_hamiltonian.get_full_encoded_ham_length()
+        self.full_encoded_ham_length = q_hamiltonian._get_full_encoded_ham_length()
 
                 
         stim_circuit, obs_count, destr_meas_count, flag_meas_counter1, stab_meas_counter1, vqed_measure_counter, flag_meas_counter2, stab_meas_counter2 = q_hamiltonian.get_stim_circuit(
@@ -284,13 +279,9 @@ class Simulation:
         
         self.circuit_obs_count = obs_count
 
-        self.num_tensor_bases = q_hamiltonian.num_tensor_bases
-
         detector_number = stim_circuit.num_detectors
         #this should error if there are non-deterministic detectors/observables
         stim_circuit.detector_error_model()
-
-        #num_tensor_bases = q_hamiltonian.num_tensor_bases
 
         self.circuit_file = self._save_circuit_file(stim_circuit, fh.seed)
 
@@ -524,7 +515,7 @@ class Simulation:
         
         bootstrapped_local_logical_error_rates = []
         raw_local_logical_error_rates = []
-        if len(obs_est_samples) < 10: #hasn't been used in vqed test on cluster yet #TODO
+        if len(obs_est_samples) < 10:
             bootstrapped_local_logical_error_rates = None
         else:
             for i in range(len(obs_est_samples[0])):
@@ -540,52 +531,8 @@ class Simulation:
 
         bootstrapped_any_logical_error_rate = None
         raw_any_logical_error_rate = 0
-        #bootstrapped_logical_error_rates - gives estimates for all local logical observables
         return bootstrapped_any_logical_error_rate, raw_any_logical_error_rate, bootstrapped_local_logical_error_rates, raw_local_logical_error_rates, bootstrapped_detection_rates, raw_any_detection_rate
 
-
-
-
-    def _sample_stim_circuit_vqed_parallel(self, q_hamiltonian):
-        """
-        
-        Samples the stim circuit and returns the logical errors and syndrome count.
-        
-        Returns:
-            obs_est_samples: Per shot observable estimates (either -1 or 1) based on the observable measurements and random stabilizer measuremetns
-            v_s: Per shot product of random stabilizer measurements.
-            any_detection_arr: Per shot array where True means at least one detector was flipped, False - none were flipped.
-        """
-        v_s = []
-        obs_est_samples = []
-        any_detection_arr = []
-            
-        
-        q_hamiltonian_copies = [copy.deepcopy(q_hamiltonian) for _ in range(self.n_shots)]
-            # Use ThreadPoolExecutor to parallelize the loop
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            results = list(executor.map(
-                sample_shot,
-                range(self.n_shots),
-                q_hamiltonian_copies,
-                [self.stabilizer_reconstruction] * self.n_shots,
-                [self.non_destructive_stabilizer_measurement_end] * self.n_shots,
-                [self.virtual_error_detection_rate] * self.n_shots,
-                [self.flags_in_synd_extraction] * self.n_shots,
-                [self.type_of_logical_observables] * self.n_shots,
-                [self.global_parity_postselection] * self.n_shots,
-                [self.p1] * self.n_shots,
-                [self.p2] * self.n_shots,
-                [self.psp] * self.n_shots,
-                [self.pi] * self.n_shots,
-                [self.pm] * self.n_shots
-            ))
-
-
-        v_s, obs_est_samples, any_detection_arr = zip(*results)
-
-        return obs_est_samples, v_s, any_detection_arr
-    
 
 
    

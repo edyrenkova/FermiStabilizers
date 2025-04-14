@@ -1,7 +1,7 @@
-from g_matrix import pruned_sierpinski_G_matrix, optimized_sierpinski_G_matrix, random_enc_G_matrix
-from inv_maps_master.utils.majoranas_utils import get_majoranas_from_G_matrix
-from inv_maps_master.utils.dirac_utils import paulis_maj_string_from_G_matrix
-from inv_maps_master.utils.signutils import sign_check
+from .g_matrix import pruned_sierpinski_G_matrix, optimized_sierpinski_G_matrix, random_enc_G_matrix
+from .utils.majoranas_utils import get_majoranas_from_G_matrix
+from .utils.dirac_utils import paulis_maj_string_from_G_matrix
+from .utils.signutils import sign_check
 import numpy as np
                 
 

@@ -1,0 +1,11 @@
+lattice_size,fermion_hamiltonian_descr,boundary_conditions,rand_seed,logical_operators_depth,efficient_trotter_steps,encoding,global_parity_postselection,virtual_error_detection_rate,stabilizer_reconstruction,flags_in_synd_extraction,non_destructive_stabilizer_measurement_end,type_of_logical_observables,pm,psp,p1,p2,pi,error_model,n_shots,bootstrap_resamples
+4,fermi_hubbard,periodic,61530,0.05,C,False,0,False,False,False,efficient,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+4,fermi_hubbard,periodic,61530,0.05,JW,False,0,False,False,False,efficient,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+4,fermi_hubbard,periodic,61530,0.05,C,False,0,False,False,False,Z,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+4,fermi_hubbard,periodic,61530,0.05,JW,False,0,False,False,False,Z,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+4,fermi_hubbard,periodic,61530,0.05,Ternary,False,0,False,False,False,Z,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+8,fermi_hubbard,periodic,61530,0.05,C,False,0,False,False,False,efficient,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+8,fermi_hubbard,periodic,61530,0.05,JW,False,0,False,False,False,efficient,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+8,fermi_hubbard,periodic,61530,0.05,C,False,0,False,False,False,Z,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+8,fermi_hubbard,periodic,61530,0.05,JW,False,0,False,False,False,Z,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,
+8,fermi_hubbard,periodic,61530,0.05,Ternary,False,0,False,False,False,Z,0.001,0.001,0.001,0.001,0.0,"(1, 1, 1, 1, 0)",1000,100,

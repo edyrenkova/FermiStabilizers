@@ -1,4 +1,5 @@
-from FermionSquare import FermionSquare
+
+from .FermionSquare import FermionSquare
 import panqec
 from hamiltonians.FermionHamiltonian import FermionHamiltonian
 import cirq
@@ -6,7 +7,7 @@ import copy
 import stim
 import stimcirq
 import numpy as np
-from AbstractEncoding import AbstractEncoding
+from .AbstractEncoding import AbstractEncoding
 from openfermion.ops import FermionOperator, QubitOperator
 import openfermion as of
 from hamiltonians.QubitHamiltonian import QubitHamiltonian
@@ -34,26 +35,24 @@ class CompactEncoding(AbstractEncoding):
         self.encoded_subset_operators = [self._get_qubit_operator(op) for op in compact_ham_dicts]
         self.full_encoded_ham = self._encode_ham(fermion_hamiltonian.full_hamiltonian)
         self.full_encoded_ham.compress()
-        self.num_tensor_bases = None
         self.measure_jk_dict = {}
         self.stab_indexes_in_order_of_meas = []
     
     ###ENCODED HAMILTONIAN METHODS###
 
-    def get_relevant_observable_counts(self):
+    def _get_relevant_observable_counts(self):
         """
         Get the number of Z observables in the encoded Hamiltonian.
 
         Returns:
             int: The number of Z observables.
             int: The number of X observables (efficient).
-            int: number of Ham terms diagonalized in the best tensor basis
         """
 
         full_encoded_ham = self.full_encoded_ham
         num_Z_terms = np.sum([all([p[1]=='Z' for p in op]) for op in list(full_encoded_ham.terms)])
         
-        return num_Z_terms, None, None
+        return num_Z_terms, None
     
     def _encode_ham(self, f_operator:FermionOperator = None):
         """
@@ -92,8 +91,7 @@ class CompactEncoding(AbstractEncoding):
 
         return compact_terms
 
-     #TODO: incorporate phases according to the encoding scheme for the tensor product basis measurements
-    
+   
     def _encode_compact_term(self, f_term):
         """
         Encodes a single term of the fermion Hamiltonian with compact encoding.
@@ -181,7 +179,7 @@ class CompactEncoding(AbstractEncoding):
             hamiltonian += term
         return hamiltonian
     
-    def get_full_encoded_ham_length(self):
+    def _get_full_encoded_ham_length(self):
         
         return len(list(self.full_encoded_ham.terms.items()))
     
@@ -194,33 +192,6 @@ class CompactEncoding(AbstractEncoding):
         """
         num_Z_terms = np.sum([all([p[1]=='Z' for p in op]) for op in list(self.full_encoded_ham.terms)])
         return num_Z_terms
-
-    def get_best_tensor_meas_basis(self):
-
-        """
-        Get the best measurement basis for the given FermionOperator.
-
-        Maximum is in terms of the number of hamiltonian terms this basis diagonalizes.
-
-        Args:
-            full_fermion_hamiltonian (FermionOperator): The FermionOperator to measure (full hamiltonian).
-            This is needed when hamiltonian subset is provided to the encoding.
-
-        Returns:
-            Tuple[str, QubitOperator]: The best measurement basis and the corresponding QubitOperator.
-        """
-        full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
-        full_encoded_ham = self._encode_ham(full_fermion_hamiltonian)
-        full_encoded_ham.compress()
-        full_q_ham = QubitHamiltonian(full_encoded_ham)
-        meas_bases = full_q_ham.get_meas_bases_sorted(self.fermion_ham.seed)
-
-        #attempting to avoid all Z measurement here TODO
-        for basis, _ in meas_bases:
-            if not all(op == 'Z' for op in basis):
-                return basis, _
-
-        return meas_bases[0][0], meas_bases[0][1]
     
     ###NON-UNITARY STATE PREP CIRCUIT METHODS###
     '''
@@ -967,7 +938,7 @@ class CompactEncoding(AbstractEncoding):
             noisy_logical_circuit = self._add_noise_to_logical_stim_circ(logical_circuit, p1, p2, pi, pm, psp)
 
         else:
-            noisy_logical_circuit = self._add_noise_to_logical_stim_circ(self._make_mirror_circuit(self._cirq_to_stim_optimize()), p1, p2, pi, pm, psp)
+            noisy_logical_circuit = self._add_noise_to_logical_stim_circ(self._make_mirror_circuit(self._cirq_to_stim_optimize(self._get_cirq_circuit())), p1, p2, pi, pm, psp)
             measure_counter = 0
 
         return noisy_logical_circuit, measure_counter
@@ -1248,51 +1219,6 @@ class CompactEncoding(AbstractEncoding):
             stim_prepend_circ.append("X_ERROR", [i], psp)
         return stim_prepend_circ+stim_circuit
 
-    #TENSOR BASIS IGNORED FOR NOW:
-    def _add_tensor_product_basis_state_prep_measurements(self, stim_circuit, pm = 0):
-
-        """
-        Add best-case tensor product basis state preparation and measurements to the STIM circuit. TODO: doesn't work
-
-        Args:
-            stim_circuit (stim.Circuit): The STIM circuit.
-            pm (float): Measurement error probability.
-
-        Returns:
-            stim.Circuit: The modified STIM circuit with tensor product basis state preparation and measurements.
-            int: The number of qubit observables added.
-        """
-
-        observable_count = 0
-        stim_circuit_prepend = stim.Circuit()
-
-        tensor_meas_basis, operators = self.get_best_tensor_meas_basis()
-        for ind,op in tensor_meas_basis:
-            if op == 'X':
-                stim_circuit_prepend.append("H", [ind])
-                #stim_circuit.append("H", [ind])
-                #stim_circuit.append("DEPOLARIZE1", [ind], p1)
-                #TODO: measurement error wasn't fixed to be applied to only Mz measurements because this method isn't currently used
-                stim_circuit.append("MX", [ind], pm)
-                stim_circuit.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), observable_count)
-                observable_count+=1
-            elif op == 'Y':
-                stim_circuit_prepend.append("H", [ind])
-
-                stim_circuit_prepend.append("S", [ind])
-                stim_circuit.append("MY", [ind], pm)
-                stim_circuit.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), observable_count)
-                observable_count+=1
-            elif op == 'Z':
-                stim_circuit.append("MZ", [ind], pm)
-                stim_circuit.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), observable_count)
-                observable_count+=1
-            else:
-                print("UNRECOGNIZED PAULI OPERATOR, ", op)
-                raise ValueError("UNRECOGNIZED PAULI OPERATOR")
-
-
-        return stim_circuit_prepend + stim_circuit, observable_count, observable_count #last thing is number of measurements
     
     def _add_efficient_measure(self, stim_circuit, pm = 0, p1 = 0):
         circuit = stim.Circuit()

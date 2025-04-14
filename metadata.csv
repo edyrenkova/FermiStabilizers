@@ -1,0 +1,2 @@
+lattice_size,boundary_conditions,logical_operators_depth_arr,efficient_trotter_steps,encodings,global_parity_postselection_options,virtual_error_detection_rate,stabilizer_reconstruction_options,flags_in_synd_extraction_options,non_destructive_stabilizer_measurement_end_options,type_of_logical_observables,p_arr,error_models,n_shots,bootstrap_resamples,num_rand_ham_subsets
+"[4, 8]",periodic,[0.05],None,"['C', 'JW', 'Ternary']",[False],[0],[False],[False],[False],"['efficient', 'Z']",[0.001],"[(1, 1, 1, 1, 0)]",1000,100,1

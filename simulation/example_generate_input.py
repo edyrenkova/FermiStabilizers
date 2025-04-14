@@ -3,79 +3,38 @@ import numpy as np
 import os
 
 
-###########vqed################
-# fermion_hamiltonian_descr = 'fermi_hubbard'
-# boundary_conditions = 'periodic'
-# lattice_size_arr = [4, 6, 8, 10, 12, 14, 16, 18]
-# #lattice_size_arr = [4, 6, 8]
-# #logical_operators_depth_arr = [0.1, 0.3, 0.5, 0.8, 1.0] 
-# logical_operators_depth_arr=[0]
-# encodings = ['C', 'JW']
-# #virtual_error_detection_rates = [0.4] 
-# virtual_error_detection_rates = [0]
-# stabilizer_reconstruction_options = [False,True]
-# flags_in_synd_extraction_options = [False, True]
-# type_of_logical_observables_arr = ['efficient', 'Z']
-# global_parity_postselection_options = [False,True]
-# non_destructive_stabilizer_measurement_end_options = [False, True]
-
-# efficient_trotter_steps_arr = [1,2,3]
-
-# p_arr = [0.0001, 0.0005, 0.001]
-# error_models = [(1, 1, 1, 1, 0)] #SD6
-# #error_models = [(0.1, 1, 2, 5, 0)] #SI1000
-#                 # p1, p2, psp, pm, pi  
-# n_shots = 100000
-# #num_rand_ham_subsets = 10 #5 #number of random hamiltonian subsets or random orderings of the fermionic operators generated for each setup
-# num_rand_ham_subsets = 1
-# bootstrap_resamples = 1000
-
-# FOLDER = 'trotter_steps_data'
-# if not os.path.exists(FOLDER):
-#     os.makedirs(FOLDER)
-# filename = f'{FOLDER}/input.csv'
-
-#RAND_SEEDS_INPUT_FILE = 'paper_data\\non_vqed\\SD6\\Compact\\input.csv'
-###############################
-
-
 
 fermion_hamiltonian_descr = 'fermi_hubbard'
-boundary_conditions = 'closed'
-lattice_size_arr = [4, 8, 12, 16, 18]
-#lattice_size_arr = [4, 6, 8, 10, 12, 14, 16]
-#logical_operators_depth_arr = [0.1, 0.3, 0.5, 0.8, 1.0] 
-#efficient_trotter_steps_arr = [1,2,3,4,5,10,20]
-efficient_trotter_steps_arr = [1,2,3,4,5]
-#encodings = ['C']
+boundary_conditions = 'periodic'
+lattice_size_arr = [4, 8]
+efficient_trotter_steps_arr = None #[1,2,3,4,5]
+logical_operators_depth_arr = [0.05]
 encodings = ['C', 'JW', 'Ternary']
 virtual_error_detection_rates = [0] 
-stabilizer_reconstruction_options = [True]
+stabilizer_reconstruction_options = [False]
 flags_in_synd_extraction_options = [False]
-type_of_logical_observables_arr = ['efficient', 'Z', 'best_tensor_basis']
-global_parity_postselection_options = [True]
-non_destructive_stabilizer_measurement_end_options = [True]
-logical_operators_depth_arr=[0]
+type_of_logical_observables_arr = ['efficient', 'Z']
+global_parity_postselection_options = [False]
+non_destructive_stabilizer_measurement_end_options = [False]
+#logical_operators_depth_arr=[0]
 
-#p_arr = [0.0001]
-p_arr = [0.0005, 0.001]
-error_models = [(1, 1, 1, 1, 0)] #SD6
-#error_models = [(0.1, 1, 2, 5, 0)] #SI1000
-                # p1, p2, psp, pm, pi  
-n_shots = 100000
-#num_rand_ham_subsets = 10 #5 #number of random hamiltonian subsets or random orderings of the fermionic operators generated for each setup
+
+p_arr = [0.001]
+error_models = [(1, 1, 1, 1, 0)] 
+n_shots = 1000
 num_rand_ham_subsets = 1
-bootstrap_resamples = 1000
+bootstrap_resamples = 100
 
-FOLDER = 'paper_data/trotter_steps_data/high_error/SD6/'
+FOLDER = '.'
 if not os.path.exists(FOLDER):
     os.makedirs(FOLDER)
 filename = f'{FOLDER}/input.csv'
-RAND_SEEDS_INPUT_FILE = 'paper_data\\non_vqed\\SD6\\Compact\\input.csv'
+RAND_SEEDS_INPUT_FILE = FOLDER+'/input.csv'
 
 
 def get_rand_seeds_from_csv(filename):
-    '''Gets the random seeds from a csv file.'''
+    '''Gets the random seeds from another input csv file.
+    This is useful for creating input file with different parameters but the same random seeds.'''
     df = pd.read_csv(filename)
     rand_seeds = df['rand_seed'].unique()
     return rand_seeds
@@ -92,7 +51,7 @@ def generate_error_model(p, error_model: tuple):
 
 def generate_metadata(filename):
     
-    '''Generates the metadata file.'''
+    '''Generates the metadata (description of the input file) file.'''
     metadata = {'lattice_size': [str(lattice_size_arr)],
                 'boundary_conditions': [str(boundary_conditions)],
                 'logical_operators_depth_arr': [str(logical_operators_depth_arr)],
@@ -133,15 +92,9 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                             'pm', 'psp', 'p1', 'p2', 'pi', 'error_model', 'n_shots', 'bootstrap_resamples']
             f.write(','.join(column_names) + '\n')
     
-    #rand_seeds = [np.random.randint(0, 100000) for i in range(num_rand_ham_subsets)]
-
-    # rand_seeds = get_rand_seeds_from_csv(RAND_SEEDS_INPUT_FILE)
-    # rand_seeds = rand_seeds[:num_rand_ham_subsets]
-    rand_seeds = [0]
-    
-    # Write rand_seeds to a separate file in npy format
-    #rand_seeds_filename = f'{FOLDER}/rand_seeds.npy'
-    #np.save(rand_seeds_filename, rand_seeds)
+    #rand_seeds = get_rand_seeds_from_csv(RAND_SEEDS_INPUT_FILE)
+    # One can also generate random seeds:
+    rand_seeds = [np.random.randint(0, 100000) for i in range(num_rand_ham_subsets)]
 
     if efficient_trotter_steps_arr:
         for lattice_size in lattice_size_arr:
@@ -182,8 +135,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                     else:
                                         continue
                                 elif enc == 'C':
-                                    if type_of_logical_observables == 'best_tensor_basis':
-                                        continue
+                                    
                                     if type_of_logical_observables == 'efficient':
                                         for non_destructive_stabilizer_measurement_end_option in non_destructive_stabilizer_measurement_end_options:
                                             for flags_in_synd_extraction_option in flags_in_synd_extraction_options:
@@ -199,22 +151,6 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                                 df = pd.DataFrame(data)
                                                 df.to_csv(filename, mode='a', header=False, index=False)
                                     elif type_of_logical_observables == 'Z':
-                                        # for non_destructive_stabilizer_measurement_end_option in non_destructive_stabilizer_measurement_end_options:
-                                        #     for flags_in_synd_extraction_option in flags_in_synd_extraction_options:
-                                        #         for global_parity_postselection in global_parity_postselection_options:
-                                        #             if flags_in_synd_extraction_option and not non_destructive_stabilizer_measurement_end_option:
-                                        #                 continue
-                                        #             data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
-                                        #                     'boundary_conditions': [boundary_conditions], 'rand_seed': [0],
-                                        #                     'logical_operators_depth': [0], 'efficient_trotter_steps': [efficient_trotter_steps],
-                                        #                     'encoding': [enc], 'global_parity_postselection': [global_parity_postselection],
-                                        #                     'virtual_error_detection_rate': [0],
-                                        #                     'stabilizer_reconstruction': [False],
-                                        #                     'flags_in_synd_extraction': [flags_in_synd_extraction_option], 'non_destructive_stabilizer_measurement_end': [non_destructive_stabilizer_measurement_end_option],
-                                        #                     'type_of_logical_observables': [type_of_logical_observables],
-                                        #                     'pm': [pm], 'psp': [psp], 'p1': [p1], 'p2': [p2], 'pi': [pi], 'error_model':[error_model], 'n_shots': [n_shots], 'bootstrap_resamples': [bootstrap_resamples]}
-                                        #             df = pd.DataFrame(data)
-                                        #             df.to_csv(filename, mode='a', header=False, index=False)
                                         for stabilizer_reconstruction in stabilizer_reconstruction_options:
                                             data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                     'boundary_conditions': [boundary_conditions], 'rand_seed': [0],
@@ -261,7 +197,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                     for type_of_logical_observables in type_of_logical_observables_arr:
 
                         for enc in encodings:
-                            if (enc == 'Ternary' and type_of_logical_observables == 'efficient') or (enc == 'C' and type_of_logical_observables == 'best_tensor_basis'):
+                            if (enc == 'Ternary' and type_of_logical_observables == 'efficient'):
                                 continue
 
                             if enc == 'Ternary':

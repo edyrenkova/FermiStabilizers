@@ -6,7 +6,7 @@ from hamiltonians.QubitHamiltonian import QubitHamiltonian
 import cirq
 import stim
 import stimcirq
-from AbstractEncoding import AbstractEncoding
+from .AbstractEncoding import AbstractEncoding
 import numpy as np
 
 
@@ -30,7 +30,6 @@ class JWEncoding(AbstractEncoding):
         [op.compress() for op in self.encoded_subset_operators]
         self.L = fermion_hamiltonian.L
         self.n_qubits = (fermion_hamiltonian.L) ** 2
-        self.num_tensor_bases = None
 
     ###ENCODED HAMILTONIAN METHODS###
     def get_relevant_observable_counts(self):
@@ -40,20 +39,16 @@ class JWEncoding(AbstractEncoding):
         Returns:
             int: The number of Z observables.
             int: The number of X observables.
-            int: number of Ham terms diagonalized in the best tensor basis
         """
         full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
         full_encoded_ham = jordan_wigner(full_fermion_hamiltonian)
         full_encoded_ham.compress()
         num_Z_terms = np.sum([all([p[1]=='Z' for p in op]) for op in list(full_encoded_ham.terms)])
-
         num_X_terms = np.sum([all([p[1]=='X' for p in op]) for op in list(full_encoded_ham.terms)])
-
-        _, operators = self.get_best_tensor_meas_basis()
         
-        return num_Z_terms, num_X_terms, len(list(operators.terms))
+        return num_Z_terms, num_X_terms
     
-    def get_full_encoded_ham_length(self):
+    def _get_full_encoded_ham_length(self):
         full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
         full_encoded_ham = jordan_wigner(full_fermion_hamiltonian)
         full_encoded_ham.compress()
@@ -296,89 +291,6 @@ class JWEncoding(AbstractEncoding):
 
 
     ###STATE PREP (BASIS ROTATIONS) AND LOGICAL OBSERVABLES MEASUREMENT CIRCUIT METHODS###
-    
-    def get_best_tensor_meas_basis(self):
-
-        """
-        Get the best measurement basis for the full hamiltonian FermionOperator.
-
-        Maximum is in terms of the number of hamiltonian terms this basis diagonalizes.
-
-        Returns:
-            Tuple[Tuple, QubitOperator]: The best measurement basis and the corresponding QubitOperator.
-        """
-        full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
-        
-        full_encoded_ham = jordan_wigner(full_fermion_hamiltonian)
-        full_encoded_ham.compress()
-        full_q_ham = QubitHamiltonian(full_encoded_ham)
-        meas_bases = full_q_ham.get_meas_bases_sorted(self.fermion_ham.seed)
-        
-        self.num_tensor_bases = len(meas_bases)
-
-        #attempting to avoid all Z measurement here TODO
-        for basis, _ in meas_bases:
-            if not all(op == 'Z' for op in basis):
-                return basis, _
-        return meas_bases[0][0], meas_bases[0][1]
-    
-    def _add_tensor_product_basis_state_prep_measurements(self, stim_circuit, pm = 0, p1=0):
-
-        """
-        Add best-case tensor product basis state preparation and measurements to the STIM circuit.
-
-
-        Args:
-            stim_circuit (stim.Circuit): The STIM circuit.
-            pm (float): Measurement error probability.
-
-        Returns:
-            stim.Circuit: The modified STIM circuit with tensor product basis state preparation and measurements.
-            int: The number of qubit observables added.
-        """
-
-        observable_count = 0
-        stim_circuit_prepend = stim.Circuit()
-        
-        tensor_meas_basis, operators = self.get_best_tensor_meas_basis()
-        
-        for ind,op in tensor_meas_basis:
-            if op == 'X':
-                stim_circuit_prepend.append("H", [ind])
-                if p1:
-                    stim_circuit_prepend.append('DEPOLARIZE1', [ind], p1)
-                stim_circuit.append('H', [ind])
-                if p1:
-                    stim_circuit.append('DEPOLARIZE1', [ind], p1)
-                stim_circuit.append("MZ", [ind], pm)
-                stim_circuit.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), observable_count)
-                observable_count+=1
-            elif op == 'Y':
-                stim_circuit_prepend.append("H", [ind])
-                if p1:
-                    stim_circuit_prepend.append('DEPOLARIZE1', [ind], p1)
-                stim_circuit_prepend.append("S", [ind])
-                if p1:
-                    stim_circuit_prepend.append('DEPOLARIZE1', [ind], p1)
-                stim_circuit.append('S_DAG', [ind])
-                if p1:
-                    stim_circuit.append('DEPOLARIZE1', [ind], p1)
-                stim_circuit.append('H', [ind])
-                if p1:
-                    stim_circuit.append('DEPOLARIZE1', [ind], p1)
-                stim_circuit.append("MZ", [ind], pm)
-                stim_circuit.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), observable_count)
-                observable_count+=1
-            elif op == 'Z':
-                stim_circuit.append("MZ", [ind], pm)
-                stim_circuit.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), observable_count)
-                observable_count+=1
-            else:
-                print("UNRECOGNIZED PAULI OPERATOR, ", op)
-                raise ValueError("UNRECOGNIZED PAULI OPERATOR")
-
-
-        return stim_circuit_prepend + stim_circuit, observable_count
 
     def _add_hopping_state_prep_measurements(self, stim_circuit, pm=0, p1=0):
         """
@@ -468,9 +380,6 @@ class JWEncoding(AbstractEncoding):
             noisy_stim, obs_number = self._add_measurement_stim_circuit(noisy_logical_circuit, pm, global_parity_postselection)
         elif type_of_logical_observables == "efficient":
             noisy_stim, obs_number = self._add_hopping_state_prep_measurements(noisy_logical_circuit, pm, p1)
-
-        elif type_of_logical_observables == "best_tensor_basis":
-            noisy_stim, obs_number = self._add_tensor_product_basis_state_prep_measurements(noisy_logical_circuit, pm, p1)
 
         psp_prepend = stim.Circuit()
         for i in range(noisy_stim.num_qubits):
