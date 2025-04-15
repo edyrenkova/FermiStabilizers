@@ -1,6 +1,6 @@
 # Code for "Scalable Simulation of Fermionic Encoding Performance on Noisy Quantum Computers"
 
-This is code supporting [](arxiv link tbd).
+This is code supporting [arxiv link tbd]().
 
 ## Installation
 
@@ -19,7 +19,7 @@ This is code supporting [](arxiv link tbd).
 
 ## Usage
 
-Refer to [./getting_started.ipynb](Getting Started).
+Refer to [Getting Started](/getting_started.ipynb).
 
 ## Contributing
 
@@ -42,7 +42,7 @@ Contributions are welcome! Please follow these steps:
 
 ## License
 
-This project is licensed under the [Insert License Name, e.g., MIT License]. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License]. See the [LICENSE](LICENSE.md) file for details.
 
 ## Contact
 
