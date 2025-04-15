@@ -22,7 +22,7 @@ class Simulation:
             output_folder (str): The output folder.
         """
 
-
+        
         self.lattice_size = int(data_frame['lattice_size'])
         self.fermion_hamiltonian_descr = data_frame['fermion_hamiltonian_descr']#.iloc[0]
         self.boundary_conditions = data_frame['boundary_conditions']#.iloc[0]
