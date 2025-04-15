@@ -1,7 +1,7 @@
 import typer
 import pandas as pd
 import numpy as np
-from Simulation import Simulation
+from simulation.Simulation import Simulation
 
 
 """

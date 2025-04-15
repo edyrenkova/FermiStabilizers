@@ -32,7 +32,7 @@ class JWEncoding(AbstractEncoding):
         self.n_qubits = (fermion_hamiltonian.L) ** 2
 
     ###ENCODED HAMILTONIAN METHODS###
-    def get_relevant_observable_counts(self):
+    def _get_relevant_observable_counts(self):
         """
         Get the number of Z observables in the encoded Hamiltonian.
 

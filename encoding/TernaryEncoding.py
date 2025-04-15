@@ -41,7 +41,7 @@ class TernaryEncoding(AbstractEncoding):
         self.cirq_circuit = self._get_cirq_circuit()
 
     ###ENCODED HAMILTONIAN METHODS###
-    def get_relevant_observable_counts(self):
+    def _get_relevant_observable_counts(self):
         """
         Get the number of Z observables in the encoded Hamiltonian.
 
