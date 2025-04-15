@@ -23,35 +23,35 @@ class Simulation:
         """
 
 
-        self.lattice_size = int(data_frame['lattice_size'])#.iloc[0])
-        self.fermion_hamiltonian_descr = data_frame['fermion_hamiltonian_descr']#.iloc[0]
-        self.boundary_conditions = data_frame['boundary_conditions']#.iloc[0]
-        self.rand_seed = int(data_frame['rand_seed'])#.iloc[0]
+        self.lattice_size = int(data_frame['lattice_size'].iloc[0])
+        self.fermion_hamiltonian_descr = data_frame['fermion_hamiltonian_descr'].iloc[0]
+        self.boundary_conditions = data_frame['boundary_conditions'].iloc[0]
+        self.rand_seed = int(data_frame['rand_seed'].iloc[0])
 
         
-        self.logical_operators_depth = data_frame['logical_operators_depth']#.iloc[0]
-        self.efficient_trotter_steps = data_frame['efficient_trotter_steps']#.iloc[0]
+        self.logical_operators_depth = data_frame['logical_operators_depth'].iloc[0]
+        self.efficient_trotter_steps = data_frame['efficient_trotter_steps'].iloc[0]
 
-        self.encoding = data_frame['encoding']#.iloc[0]
-        self.virtual_error_detection_rate = data_frame['virtual_error_detection_rate']#.iloc[0]
-        self.stabilizer_reconstruction = data_frame['stabilizer_reconstruction']#.iloc[0]
-        self.flags_in_synd_extraction = data_frame['flags_in_synd_extraction']#.iloc[0]
-        self.type_of_logical_observables = data_frame['type_of_logical_observables']#.iloc[0]
-        self.global_parity_postselection = data_frame['global_parity_postselection']#.iloc[0]
-        self.non_destructive_stabilizer_measurement_end = data_frame['non_destructive_stabilizer_measurement_end']#.iloc[0]
+        self.encoding = data_frame['encoding'].iloc[0]
+        self.virtual_error_detection_rate = data_frame['virtual_error_detection_rate'].iloc[0]
+        self.stabilizer_reconstruction = data_frame['stabilizer_reconstruction'].iloc[0]
+        self.flags_in_synd_extraction = data_frame['flags_in_synd_extraction'].iloc[0]
+        self.type_of_logical_observables = data_frame['type_of_logical_observables'].iloc[0]
+        self.global_parity_postselection = data_frame['global_parity_postselection'].iloc[0]
+        self.non_destructive_stabilizer_measurement_end = data_frame['non_destructive_stabilizer_measurement_end'].iloc[0]
 
-        self.pm = data_frame['pm']#.iloc[0]
-        self.psp = data_frame['psp']#.iloc[0]
-        self.p1 = data_frame['p1']#.iloc[0]
-        self.p2 = data_frame['p2']#.iloc[0]
-        self.pi = data_frame['pi']#.iloc[0]
+        self.pm = data_frame['pm'].iloc[0]
+        self.psp = data_frame['psp'].iloc[0]
+        self.p1 = data_frame['p1'].iloc[0]
+        self.p2 = data_frame['p2'].iloc[0]
+        self.pi = data_frame['pi'].iloc[0]
 
-        self.error_model = str(data_frame['error_model'])#.iloc[0]
+        self.error_model = str(data_frame['error_model'].iloc[0])
 
-        self.n_shots = data_frame['n_shots']#.iloc[0]
+        self.n_shots = data_frame['n_shots'].iloc[0]
         self.output_folder = output_folder
 
-        self.bootstrap_resamples = data_frame['bootstrap_resamples']
+        self.bootstrap_resamples = data_frame['bootstrap_resamples'].iloc[0]
 
         self.filename_prefix = f"{self.encoding}{self.lattice_size}{int(self.logical_operators_depth*100)}{int(self.efficient_trotter_steps*100)}{int(self.virtual_error_detection_rate*100)}{int(self.stabilizer_reconstruction)}{int(self.flags_in_synd_extraction)}{int(self.global_parity_postselection)}{int(self.non_destructive_stabilizer_measurement_end)}{self.type_of_logical_observables}{str(self.error_model).replace(', ', '').replace('(', 'm').replace(')','m')}{int(self.p2*10000)}"
         self.output_data_folder = os.path.join(output_folder, self.filename_prefix)
@@ -236,7 +236,7 @@ class Simulation:
             # else:
             #     self.effective_logical_depth = fh.rand_op_num*2 #times 2 for the mirror ciruit
             #     self.vqed_interval = int(self.virtual_error_detection_rate*self.effective_logical_depth) 
-        if self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'closed':
+        elif self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'closed':
             fh = FermionHamiltonian(True, self.lattice_size, True, rand_seed, self.logical_operators_depth, periodic=False)
             self.hamiltonian_length = fh.full_ham_length
         else:

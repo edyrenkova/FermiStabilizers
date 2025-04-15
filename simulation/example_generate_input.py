@@ -6,14 +6,14 @@ import os
 
 fermion_hamiltonian_descr = 'fermi_hubbard'
 boundary_conditions = 'periodic'
-lattice_size_arr = [4, 8]
+lattice_size_arr = [4]
 efficient_trotter_steps_arr = None #[1,2,3,4,5]
 logical_operators_depth_arr = [0.05]
 encodings = ['C', 'JW', 'Ternary']
 virtual_error_detection_rates = [0] 
 stabilizer_reconstruction_options = [False]
 flags_in_synd_extraction_options = [False]
-type_of_logical_observables_arr = ['efficient', 'Z']
+type_of_logical_observables_arr = ['Z']
 global_parity_postselection_options = [False]
 non_destructive_stabilizer_measurement_end_options = [False]
 #logical_operators_depth_arr=[0]
@@ -205,6 +205,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                     data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr], 
                                         'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                         'logical_operators_depth': [logical_operators_depth], 
+                                        'efficient_trotter_steps':[0],
                                         'encoding': [enc], 'global_parity_postselection': [False], #only JW and Compact have global parity postselection
                                         'virtual_error_detection_rate': [0], 
                                         'stabilizer_reconstruction': [False], 
@@ -220,6 +221,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                             data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                     'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                                     'logical_operators_depth': [logical_operators_depth], 
+                                                    'efficient_trotter_steps':[0],
                                                     'encoding': [enc], 'global_parity_postselection': [global_parity_postselection], 
                                                     'virtual_error_detection_rate': [0], 
                                                     'stabilizer_reconstruction': [False], 
@@ -233,6 +235,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                         data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                 'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                                 'logical_operators_depth': [logical_operators_depth], 
+                                                'efficient_trotter_steps':[0],
                                                 'encoding': [enc], 'global_parity_postselection': [False], 
                                                 'virtual_error_detection_rate': [0], 
                                                 'stabilizer_reconstruction': [False], 
@@ -251,6 +254,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                                         data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                                 'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                                                 'logical_operators_depth': [logical_operators_depth], 
+                                                                'efficient_trotter_steps':[0],
                                                                 'encoding': [enc], 'global_parity_postselection': [False], 
                                                                 'virtual_error_detection_rate': [virtual_error_detection_rate], 
                                                                 'stabilizer_reconstruction': [False], 
@@ -264,6 +268,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                                         data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                                 'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                                                 'logical_operators_depth': [logical_operators_depth], 
+                                                                'efficient_trotter_steps':[0],
                                                                 'encoding': [enc], 'global_parity_postselection': [False], 
                                                                 'virtual_error_detection_rate': [virtual_error_detection_rate], 
                                                                 'stabilizer_reconstruction': [False], 
@@ -283,7 +288,8 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                                         for rand_seed in rand_seeds:
                                                             data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                                     'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
-                                                                    'logical_operators_depth': [logical_operators_depth], 
+                                                                    'logical_operators_depth': [logical_operators_depth],
+                                                                    'efficient_trotter_steps':[0], 
                                                                     'encoding': [enc], 'global_parity_postselection': [global_parity_postselection], 
                                                                     'virtual_error_detection_rate': [virtual_error_detection_rate], 
                                                                     'stabilizer_reconstruction': [False], 
@@ -301,6 +307,7 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                                             data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                                     'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                                                     'logical_operators_depth': [logical_operators_depth], 
+                                                                    'efficient_trotter_steps':[0],
                                                                     'encoding': [enc], 'global_parity_postselection': [global_parity_postselection], 
                                                                     'virtual_error_detection_rate': [virtual_error_detection_rate],
                                                                     'stabilizer_reconstruction': [False], 
@@ -310,10 +317,12 @@ def generate_input(lattice_size_arr:list, fermion_hamiltonian_descr:str,
                                                             df = pd.DataFrame(data)
                                                             df.to_csv(filename, mode='a', header=False, index=False)
                                             for stabilizer_reconstruction in stabilizer_reconstruction_options:
-                                                for rand_seed in rand_seeds:
+                                                if stabilizer_reconstruction:
+                                                    for rand_seed in rand_seeds:
                                                             data = {'lattice_size': [lattice_size], 'fermion_hamiltonian_descr': [fermion_hamiltonian_descr],
                                                                     'boundary_conditions': [boundary_conditions], 'rand_seed': [rand_seed],
                                                                     'logical_operators_depth': [logical_operators_depth], 
+                                                                    'efficient_trotter_steps':[0],
                                                                     'encoding': [enc], 'global_parity_postselection': [False], 
                                                                     'virtual_error_detection_rate': [virtual_error_detection_rate],
                                                                     'stabilizer_reconstruction': [stabilizer_reconstruction], 
