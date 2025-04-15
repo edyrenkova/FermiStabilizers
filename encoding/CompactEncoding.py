@@ -16,6 +16,15 @@ from hamiltonians.QubitHamiltonian import QubitHamiltonian
 class CompactEncoding(AbstractEncoding):
     """
     Represents a Compact Encoding of a fermion Hamiltonian.
+
+    Attributes:
+        L (int): The size of the lattice.
+        panqec_code (FermionSquare): The panqec code used for encoding.
+        n_qubits (int): The number of qubits in the encoding.
+        fermion_ham (FermionHamiltonian): The fermion Hamiltonian to be encoded.
+        encoded_subset_operators (list): The encoded subset operators.
+        full_encoded_ham (QubitOperator): The full encoded Hamiltonian.
+
     """
    
 
@@ -25,7 +34,7 @@ class CompactEncoding(AbstractEncoding):
         Initializes a CompactEncoding object.
 
         Args:
-            fermion_hamiltonian (FermionHamiltonian, optional): The fermion Hamiltonian to be encoded
+            fermion_hamiltonian (FermionHamiltonian): The fermion Hamiltonian to be encoded
         """
         self.L = int(fermion_hamiltonian.L)
         self.panqec_code = FermionSquare(self.L)
@@ -35,8 +44,8 @@ class CompactEncoding(AbstractEncoding):
         self.encoded_subset_operators = [self._get_qubit_operator(op) for op in compact_ham_dicts]
         self.full_encoded_ham = self._encode_ham(fermion_hamiltonian.full_hamiltonian)
         self.full_encoded_ham.compress()
-        self.measure_jk_dict = {}
-        self.stab_indexes_in_order_of_meas = []
+        self._measure_jk_dict = {}
+        self._stab_indexes_in_order_of_meas = []
     
     ###ENCODED HAMILTONIAN METHODS###
 
@@ -46,7 +55,7 @@ class CompactEncoding(AbstractEncoding):
 
         Returns:
             int: The number of Z observables.
-            int: The number of X observables (efficient).
+            int: The number of X observables (to keep consistent with JW but the hopping observables get counted later).
         """
 
         full_encoded_ham = self.full_encoded_ham
@@ -58,10 +67,13 @@ class CompactEncoding(AbstractEncoding):
         """
         Encodes the fermion Hamiltonian with Compact Encoding.
 
-        Ignores cocients in the Hamiltonian.
+        Ignores coefficients in the Hamiltonian.
+
+        Args:
+            f_operator (FermionOperator): The fermion Hamiltonian to be encoded.
 
         Returns:
-            QubitOperator: The encoded Hamiltonian.
+            QubitOperator: The encoded Hamiltonian as a qubit operator (OpenFermion).
         """
         
         compact_ham_dict = self._encode_compact_ham_terms(f_operator)
@@ -69,9 +81,12 @@ class CompactEncoding(AbstractEncoding):
 
     def _encode_compact_ham_terms(self, f_operator:FermionOperator = None):
         """
-        Encodes the fermion Hamiltonian with Compact Encoding.
+        Encodes the fermion Hamiltonian with Compact Encoding and returns a list of terms.
 
         Ignores coefficients in the Hamiltonian.
+
+        Args:
+            f_operator (FermionOperator): The fermion Hamiltonian to be encoded.
 
         Returns:
             list: The encoded compact operators.
@@ -166,6 +181,17 @@ class CompactEncoding(AbstractEncoding):
         return compact_ops
     
     def _get_qubit_operator(self, encoded_ops = None):
+
+        """
+        Converts the encoded operators to a QubitOperator.
+
+        Args:
+            encoded_ops (list): The encoded operators.
+
+        Returns:
+            QubitOperator: The QubitOperator representation of the encoded operators.
+
+        """
         
         hamiltonian = QubitOperator()
         pauli_operators = encoded_ops
@@ -180,6 +206,12 @@ class CompactEncoding(AbstractEncoding):
         return hamiltonian
     
     def _get_full_encoded_ham_length(self):
+        """
+        Get the number of terms in the full encoded Hamiltonian.
+
+        Returns:
+            int: The number of terms in the full encoded Hamiltonian.
+        """
         
         return len(list(self.full_encoded_ham.terms.items()))
     
@@ -199,6 +231,21 @@ class CompactEncoding(AbstractEncoding):
     The counts are to be used when creating detectors in the stabilizer generators postselection circuits.
     '''
     def _all_stabilizer_generators_state_prep(self, p1=0, p2=0, pm=0, psp=0, pi=0, flags=False):
+        """
+        Create a circuit for state preparation by measuring all stabilizer generators.
+
+        Args:
+            p1 (float): Probability of depolarization for single-qubit gates.
+            p2 (float): Probability of depolarization for two-qubit gates.
+            pm (float): Probability of measurement error.
+            psp (float): Probability of state preparation error.
+            pi (float): Probability of idling error.
+            flags (bool): Whether to include flag measurements.
+
+        Returns:
+            tuple: A tuple containing the circuit, flag measurement counter, and stabilizer measurement counter.
+        
+        """
 
         code = self.panqec_code
         circuit = stim.Circuit()
@@ -208,10 +255,7 @@ class CompactEncoding(AbstractEncoding):
         num_stabs = len(stab_coords)
         ticktock_dict = self._make_ticktock_dict(0, num_stabs)
         timestep_dict = self._make_timestep_dict(0, num_stabs)
-        self.stab_indexes_in_order_of_meas = range(num_stabs)
-
-        #state prep error
-
+        self._stab_indexes_in_order_of_meas = range(num_stabs)
 
         if flags:
             for i_stab in range(2*num_stabs):
@@ -291,6 +335,20 @@ class CompactEncoding(AbstractEncoding):
         return circuit, flags_meas_counter, stab_meas_counter
 
     def _all_stabilizer_generators_Z_basis_state_prep(self, p1=0, p2=0, pm=0, psp=0, pi=0):
+        
+        """
+        Create a circuit for state preparation by measuring all stabilizer generators for the Z basis (measures only the face qubits, justified in the paper).
+
+        Args:
+            p1 (float): Probability of depolarization for single-qubit gates.
+            p2 (float): Probability of depolarization for two-qubit gates.
+            pm (float): Probability of measurement error.
+            psp (float): Probability of state preparation error.
+            pi (float): Probability of idling error.
+
+        Returns:
+            tuple: A tuple containing the circuit, flag measurement counter, and stabilizer measurement counter.
+        """
         code = self.panqec_code
         circuit = stim.Circuit()
         qubit_coords = code.get_qubit_coordinates()
@@ -299,10 +357,10 @@ class CompactEncoding(AbstractEncoding):
         num_stabs = len(stab_coords)
         ticktock_dict = self._make_ticktock_dict(0, num_stabs)
         timestep_dict = self._make_timestep_dict(0, num_stabs)
-        self.stab_indexes_in_order_of_meas = range(num_stabs)
+        self._stab_indexes_in_order_of_meas = range(num_stabs)
 
         
-        #state prep of ancillas, assume that state prep noise above already includes all state prep noise (?)
+        #state prep of ancillas, assume that state prep noise above already includes all state prep noise
         for i_stab in range(num_stabs):
             circuit.append("H", [i_stab+num_qubits])
             if p1:
@@ -352,7 +410,23 @@ class CompactEncoding(AbstractEncoding):
         return circuit, flags_meas_counter, stab_meas_counter
 
     def _second_half_stabilizer_generators_state_prep(self, p1=0, p2=0, pm=0, psp=0, pi=0, flags=False):
-        #hardcoded the second half of the stab generators being measured here
+        
+        """
+        Create a circuit for state preparation by measuring the second half of the stabilizer generators. Useful for state preparation for Z basis measurements with stabilizer reconstruction.
+
+        Args:
+            p1 (float): Probability of depolarization for single-qubit gates.
+            p2 (float): Probability of depolarization for two-qubit gates.
+            pm (float): Probability of measurement error.
+            psp (float): Probability of state preparation error.
+            pi (float): Probability of idling error.
+            flags (bool): Whether to include flag measurements.
+
+        Return:
+            tuple: A tuple containing the circuit, flag measurement counter, and stabilizer measurement counter.
+
+        """
+
         code = self.panqec_code
         circuit = stim.Circuit()
         qubit_coords = code.get_qubit_coordinates()
@@ -364,7 +438,7 @@ class CompactEncoding(AbstractEncoding):
         ticktock_dict = self._make_ticktock_dict(num_stabs//2, num_stabs)
         timestep_dict = self._make_timestep_dict(num_stabs//2, num_stabs)
         num_stabs = len(stab_coords)
-        self.stab_indexes_in_order_of_meas = range(num_stabs//2, num_stabs)
+        self._stab_indexes_in_order_of_meas = range(num_stabs//2, num_stabs)
 
         qubit_dict = {}
         for i_stab, stab_loc in enumerate(stab_coords_first_half):
@@ -470,6 +544,20 @@ class CompactEncoding(AbstractEncoding):
         return circuit, flags_meas_counter, stab_meas_counter
 
     def _second_half_stabilizer_generators_Z_basis_state_prep(self, p1=0, p2=0, pm=0, psp=0, pi=0):
+
+        """
+        Create a circuit for state preparation by measuring the second half of the stabilizer generators for the Z basis (measures only the face qubits, justified in the paper).
+
+        Args:
+            p1 (float): Probability of depolarization for single-qubit gates.
+            p2 (float): Probability of depolarization for two-qubit gates.
+            pm (float): Probability of measurement error.
+            psp (float): Probability of state preparation error.
+            pi (float): Probability of idling error.
+
+        Returns:
+            tuple: A tuple containing the circuit, flag measurement counter, and stabilizer measurement counter.
+        """
         
         code = self.panqec_code
         circuit = stim.Circuit()
@@ -483,7 +571,7 @@ class CompactEncoding(AbstractEncoding):
         timestep_dict = self._make_timestep_dict(num_stabs//2, num_stabs)
         num_stabs = len(stab_coords)
         qubit_dict = {}
-        self.stab_indexes_in_order_of_meas = range(num_stabs//2, num_stabs)
+        self._stab_indexes_in_order_of_meas = range(num_stabs//2, num_stabs)
         for i_stab, stab_loc in enumerate(stab_coords_first_half):
             stabilizer = code.get_stabilizer(stab_loc)
             
@@ -560,6 +648,13 @@ class CompactEncoding(AbstractEncoding):
     ###LOGICAL ROTATIONS CIRCUIT METHODS###
 
     def get_efficient_trotter_step(self):
+        """
+        Get the efficient Trotter step circuit for the encoded Hamiltonian.
+        This attempts to add all the rotation in the most space efficient fashion (reducing idling). Assumes open boundary conditions.
+
+        Returns:
+            cirq.Circuit: The efficient Trotter step circuit.
+        """
         def paulistr_to_cirq(pauli_str):
             if pauli_str is cirq.ops.gate_operation.GateOperation or len(pauli_str) <= 1:
                 return cirq.Circuit(cirq.decompose_once(pauli_str))
@@ -633,11 +728,19 @@ class CompactEncoding(AbstractEncoding):
                         (row(pauli2_qubits[0], self.L) == 0 and row(pauli2_qubits[-1], self.L) == self.L-1)):
                     circuit += paulistr_to_cirq(cirq.PauliString(pauli1))
                     circuit += paulistr_to_cirq(cirq.PauliString(pauli2))
-                # circuit += paulistr_to_cirq(cirq.PauliString(pauli1))
-                # circuit += paulistr_to_cirq(cirq.PauliString(pauli2))
         return circuit
 
     def _get_efficient_trotter_stim_circuit(self, trotter_steps):
+
+        """
+        Get the efficient Trotter steps circuit for the encoded Hamiltonian for STIM. 
+
+        Args:
+            trotter_steps (int): The number of Trotter steps to add.
+
+        Returns:
+            stim.Circuit: The efficient Trotter steps circuit.
+        """
 
         cirq_circuit = self.get_efficient_trotter_step()*trotter_steps
         opt_stim_circuit = self._cirq_to_stim_optimize(cirq_circuit)
@@ -647,7 +750,10 @@ class CompactEncoding(AbstractEncoding):
 
     def _get_cirq_circuit(self, vqed=False):
         """
-        Get the Cirq circuit representation of the encoded operator (the subset).
+        Get the Cirq circuit representation of the encoded operator (the random logical operators or subset of the Hamiltonian terms).
+
+        Args:
+            vqed (bool): Whether to use VQED.
 
         Returns:
             cirq.Circuit: The Cirq circuit representation.
@@ -694,6 +800,9 @@ class CompactEncoding(AbstractEncoding):
         """
         Convert the Cirq circuit to an "optimized" STIM circuit.
 
+        Args:
+            cirq_circuit (cirq.Circuit): The Cirq circuit to convert to STIM.
+
         Returns:
             stim.Circuit: The optimized STIM circuit.
         """
@@ -728,7 +837,7 @@ class CompactEncoding(AbstractEncoding):
 
     def _add_noise_to_logical_stim_circ(self, stim_circuit, p1=0, p2=0, pi=0, pm=0, psp=0):
         """
-        Adds noise to the given STIM circuit. The circuit is presumed to only contain random encoded logical operators.
+        Adds noise to the given STIM circuit. The circuit is presumed to only contain encoded logical operators (no encoding/stabilizer measurement/etc.).
         The noise in the state prep, stabilizer measurements, and final measurements is added in the functions that create those circuits.
 
         Args:
@@ -813,12 +922,25 @@ class CompactEncoding(AbstractEncoding):
    
     def _make_vqed_logical_stim_circ(self, cirq_circuits, vqed_rate, flags):
 
+        """
+        Create a VQED logical circuit by adding random stabilizer measurements to the given Cirq circuits.
+
+        Args:
+            cirq_circuits (list): The Cirq circuits to which VQED measurements will be added.
+            vqed_rate (int): The rate of VQED measurements.
+            flags (bool): Whether to include flag measurements.
+
+        Returns:
+            stim.Circuit: The VQED logical circuit.
+            dict: A dictionary mapping measurement indices to stabilizer coordinates or 'f' for flag measurements.
+        """
+
         code = self.panqec_code
         stab_coords = code.get_stabilizer_coordinates()
         new_circuit = stim.Circuit()
         vqed_counter = 0
         measure_counter = 0
-        self.measure_jk_dict = {} #dictionary to keep track of the j and k indices for the VQED measurements or 'f' for flag measurements
+        self._measure_jk_dict = {} #dictionary to keep track of the j and k indices for the VQED measurements or 'f' for flag measurements
        
         stim_circuits = []
         stim_inv_circuits = []
@@ -866,13 +988,13 @@ class CompactEncoding(AbstractEncoding):
                     new_circuit.append('H', [self.n_qubits])
                     
                     new_circuit.append('MR', [self.n_qubits])
-                    self.measure_jk_dict[measure_counter] = (j, k)
+                    self._measure_jk_dict[measure_counter] = (j, k)
                     measure_counter += 1
 
                     if flags:
                         new_circuit.append('H', [self.n_qubits+1])
                         new_circuit.append('MR', [self.n_qubits+1])
-                        self.measure_jk_dict[measure_counter] = 'f'
+                        self._measure_jk_dict[measure_counter] = 'f'
                         measure_counter += 1
 
                 new_circuit += stim_log_circuit
@@ -912,13 +1034,13 @@ class CompactEncoding(AbstractEncoding):
             new_circuit.append('H', [self.n_qubits])
             
             new_circuit.append('MR', [self.n_qubits])
-            self.measure_jk_dict[measure_counter] = (j, k)
+            self._measure_jk_dict[measure_counter] = (j, k)
             measure_counter += 1
 
             if flags:
                 new_circuit.append('H', [self.n_qubits+1])
                 new_circuit.append('MR', [self.n_qubits+1])
-                self.measure_jk_dict[measure_counter] = 'f'
+                self._measure_jk_dict[measure_counter] = 'f'
                 measure_counter += 1
         
         new_circuit.append('TICK')
@@ -926,11 +1048,20 @@ class CompactEncoding(AbstractEncoding):
 
     def make_logical_circuit(self, vqed_rate = 0, p1=0, p2=0, pm=0, pi=0, psp=0, flags=False):
         '''
-        Creates a logical circuit with noise for the given encoded operator.
+        Creates a logical circuit with noise.
         
         Args:
             vqed_rate (int, optional): The rate at which VQED measurements are added. Defaults to 0.
-        
+            p1 (float, optional): The depolarization probability for single-qubit gates. Defaults to 0.
+            p2 (float, optional): The depolarization probability for two-qubit gates. Defaults to 0.
+            pm (float, optional): The depolarization probability for measurement. Defaults to 0.
+            pi (float, optional): The depolarization probability for idling. Defaults to 0.
+            psp (float, optional): The depolarization probability for state preparation. Defaults to 0.
+            flags (bool, optional): Whether to include flag measurements. Defaults to False.
+
+        Return:
+            stim.Circuit: The logical circuit with noise.        
+            
         '''
         logical_circuit = stim.Circuit()
         if vqed_rate:
@@ -944,7 +1075,7 @@ class CompactEncoding(AbstractEncoding):
         return noisy_logical_circuit, measure_counter
 
     ###STABILIZER GENERATORS POSTSELECTION CIRCUIT METHODS###  
-    #TODO: change the name
+
     def _make_ticktock_dict(self, stabilizer_start_index, stabilizer_end_index):
         """
         Creates a dictionary mapping qubit coordinates to timestep in which the qubit should be entangled with an ancilla.
@@ -974,10 +1105,9 @@ class CompactEncoding(AbstractEncoding):
                 ticktock_dict[q].append(i_q)
         return ticktock_dict
     
-    # produces a dictionary that contains {timestep_index: {qubit_location : [gate (stabilizer), stabilizer index]}}
     def _make_timestep_dict(self, stabilizer_start_index, stabilizer_end_index):
         """
-        Creates a dictionary that maps timestep indices to a dictionary of qubit locations and their corresponding gate and stabilizer index.
+        Creates a dictionary that maps timestep indices to a dictionary of qubit locations and their corresponding gate and stabilizer index: {timestep_index: {qubit_location : [gate (stabilizer), stabilizer index]}}.
         Takes the stabilizers from the given range.
 
         Args:
@@ -998,6 +1128,24 @@ class CompactEncoding(AbstractEncoding):
         return timestep_dict
     
     def _full_stabilizer_generators_detection_circuit(self, stim_circ:stim.Circuit, p1=0, p2=0, pm=0, psp=0, pi=0, flags=False, flag_meas_counter=0, stab_meas_counter=0, vqed_measure_counter=0):
+        """
+        Create a circuit for measuring all stabilizer generators at the end. 
+        
+        Args:
+            stim_circ (stim.Circuit): The STIM circuit to which the stabilizer generators will be added.
+            p1 (float): Probability of depolarization for single-qubit gates.
+            p2 (float): Probability of depolarization for two-qubit gates.
+            pm (float): Probability of measurement error.
+            psp (float): Probability of state preparation error.
+            pi (float): Probability of idling error.
+            flags (bool): Whether to include flag measurements.
+            flag_meas_counter (int): The number of flag measurements.
+            stab_meas_counter (int): The number of stabilizer measurements.
+            vqed_measure_counter (int): The number of VQED measurements.
+        
+        Return:
+        tuple: A tuple containing the circuit, flag measurement counter, and stabilizer measurement counter.
+        """
 
         code = self.panqec_code
         circuit = stim_circ.copy()
@@ -1109,6 +1257,25 @@ class CompactEncoding(AbstractEncoding):
         return circuit, flag_meas_counter2, stab_meas_counter2
 
     def _second_half_stabilizer_generators_detection_circuit(self, stim_circ:stim.Circuit, p1=0, p2=0, pm=0, psp=0, pi=0, flags=False, flag_meas_counter=0, stab_meas_counter=0,vqed_measure_counter=0):
+
+        """
+        Create a circuit for measuring second half of the stabilizer generators at the end. 
+        
+        Args:
+            stim_circ (stim.Circuit): The STIM circuit to which the stabilizer generators will be added.
+            p1 (float): Probability of depolarization for single-qubit gates.
+            p2 (float): Probability of depolarization for two-qubit gates.
+            pm (float): Probability of measurement error.
+            psp (float): Probability of state preparation error.
+            pi (float): Probability of idling error.
+            flags (bool): Whether to include flag measurements.
+            flag_meas_counter (int): The number of flag measurements.
+            stab_meas_counter (int): The number of stabilizer measurements.
+            vqed_measure_counter (int): The number of VQED measurements.
+        
+        Return:
+        tuple: A tuple containing the circuit, flag measurement counter, and stabilizer measurement counter.
+        """
         code = self.panqec_code
         circuit = stim_circ.copy()
         qubit_coords = code.get_qubit_coordinates()
@@ -1200,12 +1367,11 @@ class CompactEncoding(AbstractEncoding):
         circuit.append("TICK")
         return circuit, flag_meas_counter2, stab_meas_counter2
 
-
     ###STATE PREP (BASIS ROTATIONS) AND LOGICAL OBSERVABLES MEASUREMENT CIRCUIT METHODS###
 
     def _add_X_error_state_prep_error(self, stim_circuit, psp=0):
         """
-        Adds X error to the state preparation circuit.
+        Adds X error to the state preparation circuit (only bitflips when preparing all zero state).
 
         Args:
             stim_circuit (stim.Circuit): The STIM circuit.
@@ -1220,7 +1386,19 @@ class CompactEncoding(AbstractEncoding):
         return stim_prepend_circ+stim_circuit
 
     
-    def _add_efficient_measure(self, stim_circuit, pm = 0, p1 = 0):
+    def _add_hopping_measure(self, stim_circuit, pm = 0, p1 = 0):
+        """
+        Adds hopping terms measurement to the STIM circuit.
+
+        Args:
+            stim_circuit (stim.Circuit): The STIM circuit.
+            pm (float): Measurement error probability.
+            p1 (float): Depolarization rate for single-qubit gates.
+        
+        Return:
+            stim.Circuit: The modified STIM circuit with hopping term measurement.
+        """ 
+
         circuit = stim.Circuit()
         circuit.append("TICK")
         logicals = self.panqec_code.get_logicals_x()[0::4]
@@ -1265,9 +1443,7 @@ class CompactEncoding(AbstractEncoding):
                         circuit_prepend.append("S", [q_ind])
                         if p1:
                             circuit_prepend.append("DEPOLARIZE1", [q_ind], p1)
-                        
-                
-                
+
             circuit.append("OBSERVABLE_INCLUDE", [stim.target_rec(-1),stim.target_rec(-2),stim.target_rec(-3)], observable_count)
             observable_count+=1
         return circuit_prepend+stim_circuit+circuit, observable_count, meas_counter
@@ -1294,7 +1470,7 @@ class CompactEncoding(AbstractEncoding):
 
         '''
         Adds occupation basis observables to the STIM circuit based on the given dictionary of measurements.
-        Therefore, is presumed to be run after _destr_stab_measurement_reconstr. TODO: this is a dumb separation, I should have measurements added here.
+        Therefore, is presumed to be run after _destr_stab_measurement_reconstr.
 
         Args:
             stim_circuit (STIM Circuit): The STIM circuit to append to.
@@ -1403,7 +1579,6 @@ class CompactEncoding(AbstractEncoding):
 
         return circuit_prepend + stim_circuit + circuit_append, qubit_measure_dict, qubit_dict
     
-
     ###FINAL STIM CIRCUIT METHODS###
 
     def get_stim_circuit(self,
@@ -1433,7 +1608,6 @@ class CompactEncoding(AbstractEncoding):
 
         Returns:
             stim.Circuit: The STIM circuit.
-
 
         Raises:
             NotImplementedError: If virtual error detection is requested or if a type of logical observables other than "occupation" or "hopping_subset" is requested.
@@ -1510,7 +1684,7 @@ class CompactEncoding(AbstractEncoding):
             if non_destructive_stabilizer_measurement_end:
                 final_circuit, flag_meas_counter2, stab_meas_counter2 = self._full_stabilizer_generators_detection_circuit(final_circuit, p1, p2, pm, psp, pi, flags_in_synd_extraction, flag_meas_counter1, stab_meas_counter1, vqed_measure_counter)
             
-            final_circuit, obs_count, destr_meas_count = self._add_efficient_measure(final_circuit, pm, p1)
+            final_circuit, obs_count, destr_meas_count = self._add_hopping_measure(final_circuit, pm, p1)
 
         else:
             raise NotImplementedError("Parameters invalid.")

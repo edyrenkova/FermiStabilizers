@@ -16,9 +16,13 @@ from inv_maps_master.EncodingClasses import *
 import os
 import pickle
 
-#works but hopping term measurement is not implemented and the occupation basis is questionable.
+
 
 class TernaryEncoding(AbstractEncoding):
+
+    """
+    This class utilizes the implementation of the Serpinski ternary tree encoding scheme from (https://github.com/Whitfield-Group-QC/Inverse-Maps).
+    """
 
     ###INITIALIZATION###
     def __init__(self, fermion_hamiltonian:FermionHamiltonian = None):
@@ -27,6 +31,9 @@ class TernaryEncoding(AbstractEncoding):
 
         Args:
             fermion_hamiltonian (FermionHamiltonian, optional): The fermion Hamiltonian to be encoded. Defaults to None.
+        
+        Returns:
+            None
         """
         self.L = int(fermion_hamiltonian.L)
 
@@ -44,10 +51,10 @@ class TernaryEncoding(AbstractEncoding):
     def _get_relevant_observable_counts(self):
         """
         Get the number of Z observables in the encoded Hamiltonian.
+        Returns two numbers for consistency with other encoding classes but only Z observables are relevant.
 
         Returns:
             int: The number of Z observables.
-            int: The number of X observables (efficient).
         """
         full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
         full_encoded_ham = self._encode_ham(full_fermion_hamiltonian)
@@ -57,6 +64,12 @@ class TernaryEncoding(AbstractEncoding):
         return num_Z_terms, None
     
     def _get_full_encoded_ham_length(self):
+        """
+        Get the number of terms in the full encoded Hamiltonian.
+
+        Returns:
+            int: The number of terms in the full encoded Hamiltonian.
+        """
 
         full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
         full_encoded_ham = self._encode_ham(full_fermion_hamiltonian)
@@ -64,6 +77,15 @@ class TernaryEncoding(AbstractEncoding):
         return len(list(full_encoded_ham.terms.items()))
     
     def _encode_ham(self, fermion_operator = None):
+        """
+        Encode the given fermion operator using the Ternary encoding.
+
+        Args:
+            fermion_operator (FermionOperator, optional): The fermion operator to be encoded. Defaults to None.
+
+        Return:
+            QubitOperator: The encoded qubit operator.
+        """
 
         if fermion_operator is None:
             fermion_operator = self.fermion_operator
@@ -71,22 +93,7 @@ class TernaryEncoding(AbstractEncoding):
             return QubitOperator()
         N = self.n_qubits
         
-        G_pruned = pruned_sierpinski_G_matrix(N)
-
-        # # Define the file path
-        # file_path = f'pruned_sierpinski_trees/G_pruned_N_{N}.pkl'
-
-        # # Check if the file exists
-        # if os.path.exists(file_path):
-        #     # Load the object from the file
-        #     with open(file_path, 'rb') as file:
-        #         G_pruned = pickle.load(file)
-        # else:
-        #     # Generate the object and save it to the file
-        #     G_pruned = pruned_sierpinski_G_matrix(N)
-        #     with open(file_path, 'wb') as file:
-        #         pickle.dump(G_pruned, file)
-    
+        G_pruned = pruned_sierpinski_G_matrix(N)   
         H = self._make_majorana_hamiltonian_for_ternary(N, fermion_operator)
         Hamiltonian_2 = Encoding_with_Hamiltonians(N, G_pruned, Fermionic_H = H)
         spin_H = Spin_Hamiltonian(N, Hamiltonian_2.Spin_H)
@@ -95,6 +102,16 @@ class TernaryEncoding(AbstractEncoding):
         return qubit_operator
 
     def _make_majorana_hamiltonian_for_ternary(self, N, hamiltonian:FermionOperator):
+        """
+        Create a Majorana operator for the Ternary encoding.
+
+        Args:
+            N (int): The number of qubits.
+            hamiltonian (FermionOperator): The fermion operator to be encoded.
+        
+        Return:
+            Fermionic_Hamiltonian: The Majorana representation of the Hamiltonian.
+        """
         
         hubbard_majorana_op = get_majorana_operator(hamiltonian)
         input_dict = hubbard_majorana_op.terms
@@ -131,6 +148,15 @@ class TernaryEncoding(AbstractEncoding):
         return H
     
     def _convert_to_qubit_operator(self, hamiltonian):
+        """
+        Convert the given Hamiltonian to a QubitOperator.
+
+        Args:
+            hamiltonian (tuple): The Hamiltonian to be converted.
+        
+        Return:
+            QubitOperator: The QubitOperator representation of the Hamiltonian.
+        """
         # Initialize an empty QubitOperator
         qubit_operator = QubitOperator()
 
@@ -193,6 +219,16 @@ class TernaryEncoding(AbstractEncoding):
         return stim_circuit + stim_circuit.inverse()
 
     def _get_full_trotter_step_cirq_circuit(self, trotter_steps):
+        """
+        Get the Cirq circuit representation of the full Trotter step. For this encoding, this is just applying all rotation operators once.
+        
+        Args:
+            trotter_steps (int): The number of Trotter steps.
+            
+        Returns:
+            cirq.Circuit: The Cirq circuit representation of the full Trotter steps.
+            
+        """
 
         full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
         full_encoded_ham = self._encode_ham(full_fermion_hamiltonian)
@@ -222,7 +258,6 @@ class TernaryEncoding(AbstractEncoding):
                 circuit += paulistr_to_cirq(cirq.PauliString(mutable_term))
          
         return circuit
-
 
     def _get_cirq_circuit(self):
         """
@@ -364,7 +399,7 @@ class TernaryEncoding(AbstractEncoding):
                           efficient_trotter_steps: int, # 0 if not efficient trotter setting
                           p1: float, p2: float, psp: float, pi: float, pm: float):
         """
-        Get the STIM circuit representation of the encoded operator.
+        Get the STIM circuit.
 
         Args:
             
@@ -379,7 +414,6 @@ class TernaryEncoding(AbstractEncoding):
             psp (float): State preparation error probability.
             pi (float): Idle error probability.
             pm (float): Measurement error probability.
-
 
         Returns:
             stim.Circuit: The STIM circuit representation.

@@ -12,46 +12,45 @@ from scipy.stats import bootstrap
 import copy
 
 class Simulation:
+
     def __init__(self, data_frame: pd.Series, output_folder: str):
         """
         Initializes a Simulation object.
 
         Args:
             data_frame (pd.DataFrame): The input data frame containing simulation parameters.
-            rand_seeds (list[int]): The random seeds, passed from run_simulation where it's read from an .npy file.
             output_folder (str): The output folder.
         """
 
-        
         self.lattice_size = int(data_frame['lattice_size'])
-        self.fermion_hamiltonian_descr = data_frame['fermion_hamiltonian_descr']#.iloc[0]
-        self.boundary_conditions = data_frame['boundary_conditions']#.iloc[0]
+        self.fermion_hamiltonian_descr = data_frame['fermion_hamiltonian_descr']
+        self.boundary_conditions = data_frame['boundary_conditions']
         self.rand_seed = int(data_frame['rand_seed'])
 
         
-        self.logical_operators_depth = data_frame['logical_operators_depth']#.iloc[0]
-        self.efficient_trotter_steps = data_frame['efficient_trotter_steps']#.iloc[0]
+        self.logical_operators_depth = data_frame['logical_operators_depth']
+        self.efficient_trotter_steps = data_frame['efficient_trotter_steps']
 
-        self.encoding = data_frame['encoding']#.iloc[0]
-        self.virtual_error_detection_rate = data_frame['virtual_error_detection_rate']#.iloc[0]
-        self.stabilizer_reconstruction = data_frame['stabilizer_reconstruction']#.iloc[0]
-        self.flags_in_synd_extraction = data_frame['flags_in_synd_extraction']#.iloc[0]
-        self.type_of_logical_observables = data_frame['type_of_logical_observables']#.iloc[0]
-        self.global_parity_postselection = data_frame['global_parity_postselection']#.iloc[0]
-        self.non_destructive_stabilizer_measurement_end = data_frame['non_destructive_stabilizer_measurement_end']#.iloc[0]
+        self.encoding = data_frame['encoding']
+        self.virtual_error_detection_rate = data_frame['virtual_error_detection_rate']
+        self.stabilizer_reconstruction = data_frame['stabilizer_reconstruction']
+        self.flags_in_synd_extraction = data_frame['flags_in_synd_extraction']
+        self.type_of_logical_observables = data_frame['type_of_logical_observables']
+        self.global_parity_postselection = data_frame['global_parity_postselection']
+        self.non_destructive_stabilizer_measurement_end = data_frame['non_destructive_stabilizer_measurement_end']
 
-        self.pm = data_frame['pm']#.iloc[0]
-        self.psp = data_frame['psp']#.iloc[0]
-        self.p1 = data_frame['p1']#.iloc[0]
-        self.p2 = data_frame['p2']#.iloc[0]
-        self.pi = data_frame['pi']#.iloc[0]
+        self.pm = data_frame['pm']
+        self.psp = data_frame['psp']
+        self.p1 = data_frame['p1']
+        self.p2 = data_frame['p2']
+        self.pi = data_frame['pi']
 
-        self.error_model = str(data_frame['error_model'])#.iloc[0])
+        self.error_model = str(data_frame['error_model'])
 
-        self.n_shots = data_frame['n_shots']#.iloc[0]
+        self.n_shots = data_frame['n_shots']
         self.output_folder = output_folder
 
-        self.bootstrap_resamples = data_frame['bootstrap_resamples']#.iloc[0]
+        self.bootstrap_resamples = data_frame['bootstrap_resamples']
 
         self.filename_prefix = f"{self.encoding}{self.lattice_size}{int(self.logical_operators_depth*100)}{int(self.efficient_trotter_steps*100)}{int(self.virtual_error_detection_rate*100)}{int(self.stabilizer_reconstruction)}{int(self.flags_in_synd_extraction)}{int(self.global_parity_postselection)}{int(self.non_destructive_stabilizer_measurement_end)}{self.type_of_logical_observables}{str(self.error_model).replace(', ', '').replace('(', 'm').replace(')','m')}{int(self.p2*10000)}"
         self.output_data_folder = os.path.join(output_folder, self.filename_prefix)
@@ -59,6 +58,10 @@ class Simulation:
     def run(self):
         """
         Runs the simulation.
+        Records the bootstrapped statistics into files and returns a DataFrame with the results and filenames.
+
+        Args:
+            None
         """
         rand_seed = self.rand_seed
         tic = time.time()
@@ -177,7 +180,11 @@ class Simulation:
             
     def record_results(self, output_filename:str, mode='a'):
         """
-        Records and compares the simulation results.
+        Records the simulation results into a csv.
+
+        Args:
+            output_filename (str): The name of the output file.
+            mode (str): The mode to open the file in. Defaults to 'a' (append).
         """
         output_filename = self.output_folder + "/" +output_filename
         # Check if file exists
@@ -223,19 +230,13 @@ class Simulation:
         """
         Initializes a FermionHamiltonian object based on the provided description and seed.
 
-        FermionHamiltonian object now includes both the full Hamiltonian and a subset of terms.
+        Args:
+            rand_seed (int): The random seed for the Hamiltonian.
         """
         
         if self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'periodic':
             fh = FermionHamiltonian(True, self.lattice_size, True, rand_seed, self.logical_operators_depth)
             self.hamiltonian_length = fh.full_ham_length
-
-            #vqed interval (how often vqed is done) provided in input parameters is a fraction, so we need to multiply it by the effective logical depth (number of logical operators applied in the circuit)
-            # if self.virtual_error_detection_rate == -1:
-            #     self.vqed_interval = -1
-            # else:
-            #     self.effective_logical_depth = fh.rand_op_num*2 #times 2 for the mirror ciruit
-            #     self.vqed_interval = int(self.virtual_error_detection_rate*self.effective_logical_depth) 
         elif self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'closed':
             fh = FermionHamiltonian(True, self.lattice_size, True, rand_seed, self.logical_operators_depth, periodic=False)
             self.hamiltonian_length = fh.full_ham_length
@@ -244,6 +245,12 @@ class Simulation:
         return fh
     
     def _make_stim_circuit(self, fh: FermionHamiltonian):
+        """
+        Creates a stim circuit based on the provided FermionHamiltonian object.
+
+        Args:   
+            fh (FermionHamiltonian): The FermionHamiltonian object.
+        """
         
         if self.encoding == 'JW':
             q_hamiltonian = JWEncoding(fh)
@@ -272,8 +279,8 @@ class Simulation:
                                  psp=self.psp, pi=self.pi,
                                  pm=self.pm)
         if self.encoding == 'C' and self.virtual_error_detection_rate:
-            self.measure_jk_dict = q_hamiltonian.measure_jk_dict #{measure_counter: (j, k)} - j, k are indexes of j and k stabilizers for vqed
-            self.stab_indexes_in_order_of_meas = q_hamiltonian.stab_indexes_in_order_of_meas #indexes of stabilizers in the order they are measured in the state prep
+            self.measure_jk_dict = q_hamiltonian._measure_jk_dict #{measure_counter: (j, k)} - j, k are indexes of j and k stabilizers for vqed
+            self.stab_indexes_in_order_of_meas = q_hamiltonian._stab_indexes_in_order_of_meas #indexes of stabilizers in the order they are measured in the state prep
         if self.encoding == 'C' and self.type_of_logical_observables == 'efficient':
             self.efficient_obs_count = obs_count
         
@@ -291,6 +298,14 @@ class Simulation:
         return stim_circuit, obs_count, detector_number, destr_meas_count, flag_meas_counter1, stab_meas_counter1, vqed_measure_counter, flag_meas_counter2, stab_meas_counter2
         
     def _save_circuit_file(self, stim_circuit, rand_seed):
+        """
+        Saves the stim circuit to a file.
+
+        Args:
+            stim_circuit (stim.Circuit): The stim circuit to save.
+            rand_seed (int): The random seed for the Hamiltonian.
+
+        """
         os.makedirs(self.output_data_folder, exist_ok=True)
         circuit_file = f"{self.output_data_folder}/circuit_{rand_seed}.stim"
         stim_circuit.to_file(circuit_file)
@@ -300,10 +315,14 @@ class Simulation:
     def _sample_stim_circuit_detector_compiler(self, stim_circuit:stim.Circuit):
         """
         Samples the stim circuit and returns the logical errors and syndrome count.
+
+        Args:
+            stim_circuit (stim.Circuit): The stim circuit to sample.
         
         Returns:
             np.ndarray: Postselected shot array where True means at least one logical observable was flipped, False - none were flipped.
             np.ndarray: Shot array where True means at least one detector was flipped, False - none were flipped.
+            ndp.ndarray: Postselected observable data (results for all logical observables) for trivial syndrome.
         """
         
         sampler = stim_circuit.compile_detector_sampler()
@@ -322,7 +341,10 @@ class Simulation:
     def _sample_stim_circuit_vqed(self, q_hamiltonian):
         """
         
-        Samples the stim circuit and returns the logical errors and syndrome count.
+        Samples the stim circuit using virtual quantum error detection (VQED).
+
+        Args:
+            q_hamiltonian (FermionHamiltonian): The AbstractEncoding object.
         
         Returns:
             obs_est_samples: Per shot observable estimates (either -1 or 1) based on the observable measurements and random stabilizer measuremetns
@@ -459,8 +481,21 @@ class Simulation:
     
     def _bootstrap_no_vqed(self, any_detection_arr, any_obs_arr, obs_data_for_triv_syndrome):
         """
-        Estimates the logical error rate using bootstrap.
+        Estimates the statistics using bootstrap.
 
+        Args:
+            any_detection_arr (np.ndarray): Array of detection results.
+            any_obs_arr (np.ndarray): Array of observable results.
+            obs_data_for_triv_syndrome (np.ndarray): Array of observable data for trivial syndrome.
+
+        Returns:
+            bootstrapped_any_logical_error_rate (np.ndarray): Bootstrapped "any" logical error rates (True if any logical observable was flipped).
+            raw_any_logical_error_rate (float): Raw "any" logical error rate.
+            bootstrapped_local_logical_error_rates (list): Bootstrapped local logical error rates (counts for all logical observables separately).
+
+            raw_logical_error_rates (list): Raw local logical error rates.
+            bootstrapped_detection_rates (np.ndarray): Bootstrapped detection rates.
+            raw_any_detection_rate (float): Raw detection rate.
         """
         
         bootstrapped_local_logical_error_rates = [] #local obs error rates
@@ -489,20 +524,30 @@ class Simulation:
         
         return bootstrapped_any_logical_error_rate, raw_any_logical_error_rate, bootstrapped_local_logical_error_rates, raw_logical_error_rates, bootstrapped_detection_rates, raw_any_detection_rate
 
+
     def _bootstrap_vqed(self, obs_est_samples, v_s, any_detection_arr):
         """
-        Estimates the logical error rate using bootstrap.
+        Estimates the statistics for VQED using bootstrap.
+
+        Args:
+            obs_est_samples (np.ndarray): Array of observable estimates.
+            v_s (np.ndarray): Array of stabilizer measurements.
+            any_detection_arr (np.ndarray): Array of detection results.
+
+        Returns:
+            bootstrapped_any_logical_error_rate (np.ndarray): Bootstrapped "any" logical error rates (True if any logical observable was flipped).
+            raw_any_logical_error_rate (float): Raw "any" logical error rate.
+            bootstrapped_local_logical_error_rates (list): Bootstrapped local logical error rates (counts for all logical observables separately).
+            raw_logical_error_rates (list): Raw local logical error rates.
+            bootstrapped_detection_rates (np.ndarray): Bootstrapped detection rates.
+            raw_any_detection_rate (float): Raw detection rate.
 
         """
         def vqed_estimate(obs_est_samples, v_s, axis=-1):
             """
             Estimates the logical error rate using VQED.
 
-            Return:
-                obs_est_error: 
             """
-            #obs_est_sums_norm = (np.sum(obs_est_samples)/np.sum(v_s)+1)/2
-            #obs_est_error = 1 - obs_est_sums_norm
             b_s = np.sum(obs_est_samples,axis)
             a_s = np.sum(v_s,axis)
             if a_s == 0:
@@ -510,8 +555,6 @@ class Simulation:
             else:
                 obs_est_error = 1 - (float(b_s)/float(a_s)+1)/2
             return obs_est_error
-        
-
         
         bootstrapped_local_logical_error_rates = []
         raw_local_logical_error_rates = []
@@ -532,128 +575,3 @@ class Simulation:
         bootstrapped_any_logical_error_rate = None
         raw_any_logical_error_rate = 0
         return bootstrapped_any_logical_error_rate, raw_any_logical_error_rate, bootstrapped_local_logical_error_rates, raw_local_logical_error_rates, bootstrapped_detection_rates, raw_any_detection_rate
-
-
-
-   
-def sample_shot(i, q_hamiltonian, stabilizer_reconstruction, non_destructive_stabilizer_measurement_end, virtual_error_detection_rate, flags_in_synd_extraction, type_of_logical_observables, global_parity_postselection, p1, p2, psp, pi, pm):
-    stim_circuit, obs_count, destr_meas_count, flag_meas_counter1, stab_meas_counter1, vqed_measure_counter, flag_meas_counter2, stab_meas_counter2 = q_hamiltonian.get_stim_circuit(
-                            stabilizer_reconstruction=stabilizer_reconstruction,
-                            non_destructive_stabilizer_measurement_end=non_destructive_stabilizer_measurement_end,
-                            virtual_error_detection_rate=virtual_error_detection_rate,
-                            flags_in_synd_extraction=flags_in_synd_extraction,
-                            type_of_logical_observables=type_of_logical_observables,
-                            global_parity_postselection=global_parity_postselection,
-                            p1=p1, p2=p2,
-                            psp=psp, pi=pi,
-                            pm=pm)
-    
-    measure_jk_dict = copy.deepcopy(q_hamiltonian.measure_jk_dict) #{measure_counter: (j, k)} - j, k are indexes of j and k stabilizers for vqed
-        
-    stab_indexes_in_order_of_meas = copy.deepcopy(q_hamiltonian.stab_indexes_in_order_of_meas) #indexes of stabilizers in the order they are measured in the state prep
-    
-    meas_sampler = stim_circuit.compile_sampler(skip_reference_sample=True)
-
-    sample = meas_sampler.sample(shots=1)[0]
-
-
-    #defining partitions of measurements in the samples array
-    start_stab_meas_start = 0
-    start_stab_meas_end = stab_meas_counter1
-    start_flag_meas_start = stab_meas_counter1
-    start_flag_meas_end = stab_meas_counter1+flag_meas_counter1
-    vqed_meas_start = stab_meas_counter1+flag_meas_counter1
-    vqed_meas_end = vqed_meas_start + vqed_measure_counter
-    end_stab_meas_start = vqed_meas_end
-    end_stab_meas_end = vqed_meas_end + stab_meas_counter2
-    end_flag_meas_start = end_stab_meas_end
-    end_flag_meas_end = end_stab_meas_end + flag_meas_counter2
-    
-
-
-    vqed_m_results = sample[vqed_meas_start:vqed_meas_end]
-
-    #####################POSTSELECTION########################
-    if stab_meas_counter1:
-        start_stab_m_results = sample[start_stab_meas_start:start_stab_meas_end]
-
-    if stab_meas_counter2:
-        end_stab_m_results = sample[end_stab_meas_start:end_stab_meas_end]
-        if len(end_stab_m_results) == len(start_stab_m_results):
-            if np.any(np.bitwise_xor(end_stab_m_results, start_stab_m_results)):
-                any_detection = True
-                return any_detection, None, None
-        elif len(end_stab_m_results) == len(start_stab_m_results)*2:
-            if np.any(np.bitwise_xor(end_stab_m_results[len(start_stab_m_results):], start_stab_m_results)) or np.any(end_stab_m_results[:len(start_stab_m_results)]):
-                any_detection = True
-                return any_detection, None, None
-
-    if flag_meas_counter1:
-        start_flag_m_results = sample[start_flag_meas_start:start_flag_meas_end]
-        if np.any(start_flag_m_results):
-            any_detection = True
-            return any_detection, None, None
-    if flag_meas_counter2:
-        end_flag_m_results = sample[end_flag_meas_start:end_flag_meas_end]
-        if np.any(end_flag_m_results):
-            any_detection = True
-            return any_detection, None, None
-    
-    vqed_flag_detected = False
-    for j in range(vqed_measure_counter):
-        
-        if vqed_m_results[j] and measure_jk_dict[j] == 'f':
-            vqed_flag_detected = True
-            break
-    if vqed_flag_detected:
-        any_detection = True
-        return any_detection, None, None
-    
-    obs_meas_results = sample[end_flag_meas_end:]
-
-    if global_parity_postselection:
-        if np.sum(obs_meas_results) % 2 != 0:
-            any_detection = True
-            return any_detection, None, None
-        
-    #####################END POSTSELECTION########################
-
-    any_detection = False
-
-    if len(obs_meas_results) != destr_meas_count:
-        raise ValueError(f"Number of observables measured {len(obs_meas_results)} does not match the expected number {destr_meas_count}")
-    
-    #combining triples of "edge operators" together
-    if type_of_logical_observables == 'efficient':
-        obs_meas_results_efficient_combined = []
-        for i in range(0, len(obs_meas_results), 3):
-            obs_meas_results_efficient_combined.append(obs_meas_results[i] and obs_meas_results[i+1] and obs_meas_results[i+2])
-        obs_meas_results = obs_meas_results_efficient_combined
-    
-
-    #add up results from the vqed measurements, a_j in the paper where j counts samples
-    #multiply by -1 if the corresponding stabilizer measurements are different
-    v_s_i = 1
-    
-    for v_i in range(len(vqed_m_results)):
-        if measure_jk_dict[v_i] != 'f':
-            v_s_i *= 1 if not vqed_m_results[v_i] else (-1)
-            if measure_jk_dict[v_i][0] in stab_indexes_in_order_of_meas:                    
-                j_state_prep_res = 1 if not start_stab_m_results[stab_indexes_in_order_of_meas.index(measure_jk_dict[v_i][0])] else -1
-            else:
-                j_state_prep_res = 1
-            if measure_jk_dict[v_i][1] in stab_indexes_in_order_of_meas:
-                k_state_prep_res = 1 if not start_stab_m_results[stab_indexes_in_order_of_meas.index(measure_jk_dict[v_i][1])] else -1
-            else:
-                k_state_prep_res = 1
-            v_s_i *= (j_state_prep_res*k_state_prep_res)
-                
-    v_s = v_s_i
-        
-    obs_est_sample = []
-    for obs_res in obs_meas_results:
-        obs_est_sample.append((1 if not obs_res else -1)*v_s_i)
-    #in our circuits we expect obs_est_sample values to be close to +1 -> we expect to return to |0> state
-
-    #obs_est_samples.append(obs_est_sample)
-    return v_s, obs_est_sample, any_detection

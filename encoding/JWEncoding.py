@@ -22,6 +22,9 @@ class JWEncoding(AbstractEncoding):
 
         Args:
             fermion_hamiltonian (FermionHamiltonian): The fermion Hamiltonian to encode. This already includes the full hamiltonian and the subset of terms.
+
+        Returns:
+            None
         """
         self.fermion_ham = fermion_hamiltonian
 
@@ -49,6 +52,13 @@ class JWEncoding(AbstractEncoding):
         return num_Z_terms, num_X_terms
     
     def _get_full_encoded_ham_length(self):
+        """
+        Get the number of terms in the full encoded Hamiltonian.
+        
+        Returns:
+            int: The number of terms in the full encoded Hamiltonian.
+        """
+
         full_fermion_hamiltonian = self.fermion_ham.full_hamiltonian
         full_encoded_ham = jordan_wigner(full_fermion_hamiltonian)
         full_encoded_ham.compress()
@@ -59,6 +69,12 @@ class JWEncoding(AbstractEncoding):
     ###LOGICAL ROTATIONS CIRCUIT METHODS###
 
     def _get_swap_network_full_ham_cirq(self):
+        """
+        Get the Cirq circuit representation of the full Hamiltonian (assumes open boundary for simplicity) using a swap network.
+
+        Returns:
+            cirq.Circuit: The Cirq circuit.
+        """
         cirq_qubits = cirq.LineQubit.range(self.n_qubits)
         circuit = cirq.Circuit()
 
@@ -140,6 +156,15 @@ class JWEncoding(AbstractEncoding):
         return circuit
 
     def _get_trotterized_stim_mirror_circuit(self, trotter_steps):
+        """
+        Get the trotter steps circuit with swap networks.
+
+        Args:
+            trotter_steps (int): The number of Trotter steps.
+        Returns:
+            stim.Circuit: The logical STIM circuit.
+        """
+
         circuit = cirq.Circuit()
         for _ in range(trotter_steps):
             circuit += self._get_swap_network_full_ham_cirq()
@@ -150,7 +175,7 @@ class JWEncoding(AbstractEncoding):
 
     def _get_cirq_circuit(self):
         """
-        Get the Cirq circuit representation of the encoded operator (the subset).
+        Get the Cirq circuit representation of the encoded operator (the random logical operators/subset of the Hamiltonian terms).
 
         Returns:
             cirq.Circuit: The Cirq circuit representation.
@@ -269,6 +294,9 @@ class JWEncoding(AbstractEncoding):
         """
         Convert the Cirq circuit to an "optimized" STIM circuit.
 
+        Args:
+            cirq_circuit (cirq.Circuit): The Cirq circuit to optimize. If None, the method will create a new Cirq circuit.
+
         Returns:
             stim.Circuit: The optimized STIM circuit.
         """
@@ -295,16 +323,16 @@ class JWEncoding(AbstractEncoding):
     def _add_hopping_state_prep_measurements(self, stim_circuit, pm=0, p1=0):
         """
         Add best-case hopping operators state preparation and measurements to the STIM circuit.
-
         Measures all nearest neighbors in the chain.
         
         Args:
             stim_circuit (stim.Circuit): The STIM circuit.
             pm (float): Measurement error probability.
             
-            Returns:
-                stim.Circuit: The modified STIM circuit with hopping state preparation and measurements.
-                int: The number of qubit observables added."""
+        Returns:
+            stim.Circuit: The modified STIM circuit with hopping state preparation and measurements.
+            int: The number of qubit observables added.
+        """
 
         observable_count = 0
         stim_circuit_prepend = stim.Circuit()
@@ -349,16 +377,27 @@ class JWEncoding(AbstractEncoding):
                           stabilizer_reconstruction: bool,
                           non_destructive_stabilizer_measurement_end: bool,
                           virtual_error_detection_rate:float, #vqed_rate should be 0 if virtual error detection is not used
-                          
                           flags_in_synd_extraction: bool,
                           type_of_logical_observables: str,
                           global_parity_postselection: bool,
-                          efficient_trotter_steps: int, #efficient_trotter_steps should be 0 if efficient trotterization is not used, doesn't count mirror circuits
+                          efficient_trotter_steps: int, #efficient_trotter_steps should be 0 if efficient trotterization is not used, this parameter doesn't count mirror circuits (however, the Simulation class does)
                           p1: float, p2: float, psp: float, pi: float, pm: float):
         """
         Get the STIM circuit representation of the encoded operator.
 
         Args:
+            stabilizer_reconstruction (bool): Whether to use stabilizer reconstruction.
+            non_destructive_stabilizer_measurement_end (bool): Whether to use non-destructive stabilizer measurement at the end.
+            virtual_error_detection_rate (float): The virtual error detection rate.
+            flags_in_synd_extraction (bool): Whether to use flags in syndrome extraction.
+            type_of_logical_observables (str): Type of logical observables ("Z" or "efficient").
+            global_parity_postselection (bool): Whether to use global parity postselection.
+            efficient_trotter_steps (int): Number of Trotter steps for efficient trotterization.
+            p1 (float): Single-qubit depolarization probability.
+            p2 (float): Two-qubit depolarization probability.
+            psp (float): State preparation error probability.
+            pi (float): Idle error probability.
+            pm (float): Measurement error probability.
             
         Returns:
             stim.Circuit: The STIM circuit representation.
