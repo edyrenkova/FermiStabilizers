@@ -46,4 +46,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE.md) fi
 
 ## Contact
 
-For questions or feedback, please contact [your email or other contact information].
+For questions or feedback, please contact edyrenkova@berkeley.edu.
