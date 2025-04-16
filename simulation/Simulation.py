@@ -237,7 +237,7 @@ class Simulation:
         if self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'periodic':
             fh = FermionHamiltonian(True, self.lattice_size, True, rand_seed, self.logical_operators_depth)
             self.hamiltonian_length = fh.full_ham_length
-        elif self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'closed':
+        elif self.fermion_hamiltonian_descr == 'fermi_hubbard' and self.boundary_conditions == 'open':
             fh = FermionHamiltonian(True, self.lattice_size, True, rand_seed, self.logical_operators_depth, periodic=False)
             self.hamiltonian_length = fh.full_ham_length
         else:
