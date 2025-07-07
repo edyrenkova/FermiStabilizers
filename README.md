@@ -1,6 +1,6 @@
 # Code for "Scalable Simulation of Fermionic Encoding Performance on Noisy Quantum Computers"
 
-This is code supporting [arxiv link tbd]().
+This is code supporting [arxiv link](https://arxiv.org/abs/2506.06425).
 
 ## Installation
 
