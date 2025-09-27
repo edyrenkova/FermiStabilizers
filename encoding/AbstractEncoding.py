@@ -36,10 +36,9 @@ class AbstractEncoding(ABC):
             fermion_hamiltonian (FermionHamiltonian): The fermionic Hamiltonian to be encoded.
         """
         self.L = fermion_hamiltonian.L
-        self.fermion_operator = fermion_hamiltonian.get_fermion_operator()
 
     @abstractmethod
-    def get_stim_circuit(stabilizer_reconstruction: bool,
+    def get_stim_circuit(self, stabilizer_reconstruction: bool,
                           non_destructive_stabilizer_measurement_end: bool,
                           virtual_error_detection_rate:float, 
                           flags_in_synd_extraction: bool,
