@@ -87,8 +87,6 @@ class TernaryEncoding(AbstractEncoding):
             QubitOperator: The encoded qubit operator.
         """
 
-        if fermion_operator is None:
-            fermion_operator = self.fermion_operator
         if fermion_operator.terms == {}:
             return QubitOperator()
         N = self.n_qubits
@@ -370,7 +368,7 @@ class TernaryEncoding(AbstractEncoding):
 
     ###STATE PREP (BASIS ROTATIONS) AND LOGICAL OBSERVABLES MEASUREMENT CIRCUIT METHODS###
 
-    def _add_measurement_stim_circuit(self, stim_circ, pm=0):
+    def _add_measurement_stim_circuit(self, stim_circ, pm=0, global_parity_postselection=False):
         """
         Add occupation basis measurement gates to the STIM circuit.
 
@@ -384,6 +382,8 @@ class TernaryEncoding(AbstractEncoding):
         for i in range(self.n_qubits):
             stim_circ.append("M", [i], pm)
             stim_circ.append("OBSERVABLE_INCLUDE", stim.target_rec(-1), i)
+        if global_parity_postselection:
+            stim_circ.append('DETECTOR', [stim.target_rec(-i) for i in range(1, self.L**(2)+1)])
         return stim_circ, self.n_qubits
 
     
@@ -426,7 +426,6 @@ class TernaryEncoding(AbstractEncoding):
         non_destructive_stabilizer_measurement_end = False
         virtual_error_detection_rate = 0
         flags_in_synd_extraction = False
-        global_parity_postselection = False #don't know how to do in ternary case, the states don't get mapped as easily
         
         if efficient_trotter_steps == 0:
             optimized_circuit = self._cirq_to_stim_optimize(self._get_cirq_circuit())
@@ -438,7 +437,7 @@ class TernaryEncoding(AbstractEncoding):
             noisy_logical_circuit = self._add_noise_stim_circ(optimized_circuit+inverse_circuit, p1, p2, psp, pi)
     
         if type_of_logical_observables == "Z":
-            noisy_stim, obs_number = self._add_measurement_stim_circuit(noisy_logical_circuit, pm)
+            noisy_stim, obs_number = self._add_measurement_stim_circuit(noisy_logical_circuit, pm, global_parity_postselection)
         elif type_of_logical_observables == "efficient":
             raise NotImplementedError("Efficient logical observables not implemented for TernaryEncoding")
 
